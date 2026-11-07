@@ -359,7 +359,7 @@ Criterios de la constitución con el CSV: precision en el 5 % (k = 62) 0,758; RO
 | M6 · JSON malformado | ✅ | `{"campo": "cuerpo", "mensaje": "JSON mal formado"}`; `test_api_errores.py` |
 | M7 · Mensajes y límites duplicados | ✅ | «debe estar entre 1 y 120», categorías con «o»; los rangos viven en `config.py` y los usan `api.py`, `dataset.py` y `features.py` |
 | M10 · Referencias a la 001 | ✅ | `.opencode/skills/spec-code-review`, `docs/PLAN_B.md` y `prompts/PROMPTS_OPENCODE.md` apuntan a la 002; las menciones que quedan son históricas a propósito |
-| M11 · Higiene del repo | ✅ | `.gitignore` ampliado; decisión T102: `models/` y `reports/metrics/` se versionan (README §8, GOBERNANZA §3); `Dockerfile` opcional (no construido, ver Re-auditoría) |
+| M11 · Higiene del repo | ✅ | `.gitignore` ampliado; decisión T102: `models/` y `reports/metrics/` se versionan (README §8, GOBERNANZA §3); `Dockerfile` opcional (construido y probado el 2026-11-07, ver Re-auditoría) |
 | I6 · FR-025 | ✅ | `docs/AUDITORIA_EQUIDAD.md` y `tests/unit/test_docs_auditoria_equidad.py` |
 | I10, D2, D10 en documentos | ✅ | `docs/GOBERNANZA.md` §9 y `business/ASUM-DM.md` §1.4 y §8 |
 
@@ -400,7 +400,7 @@ Fecha: 2026-11-07 · Rama `main`, tras las etapas 0 a 4 · Alcance: repositorio 
 | 12 | 70 solicitudes seguidas a `/health` | Límite de 60 | 59 con 200 y 11 con 429 (había una solicitud previa en la ventana); el 429 trae `retry-after` y `{"error": "Demasiadas solicitudes; reintente en 59 s"}` | ❌ | ✅ |
 | 13 | Registro tras los escenarios | Sin ids en claro | 6.302 líneas, todas con las 5 claves; ni `CLI-SECRETO-001` ni ningún `id_cliente` de las 1.000 filas del lote aparece | ❌ | ✅ |
 
-No se ejecutaron: `scripts/instalar_*.sh` (instalan software), el flujo con Ollama/OpenCode y `docker build` (el demonio de Docker no estaba activo; solo se verificó que la instalación editable en un entorno limpio resuelve `models/` desde la raíz del repositorio).
+No se ejecutaron: `scripts/instalar_*.sh` (instalan software), y el flujo con Ollama/OpenCode. `docker build -t churn-api .` no se pudo ejecutar en la re-auditoría (el demonio de Docker no estaba activo); después se construyó la imagen sin errores, el contenedor arrancó con `CHURN_HASH_SALT` y `GET /health` respondió.
 
 ### Fase 3 · Matriz de trazabilidad (resumen recalculado)
 Cada FR y SC de la spec se buscó en los comentarios y docstrings de `tests/`. **37 de 38 tienen al menos una prueba que los cita**; FR-025 (auditoría trimestral) es un procedimiento humano y lo guarda `tests/unit/test_docs_auditoria_equidad.py`. Estados: ✅ en los 28 FR y 10 SC, salvo SC-010 ⚠️ (el criterio se mide y se hace cumplir como compuerta, pero el modelo actual no lo cumple: B5).
