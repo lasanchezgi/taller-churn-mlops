@@ -184,6 +184,9 @@ El equipo de ciencia de datos compara un lote reciente con los datos de entrenam
 - **FR-026**: Mientras el modelo servido no esté aprobado para despliegue, cada respuesta de predicción individual y por lote MUST incluir una alerta de equidad que explique la razón (p. ej. brecha de recall entre grupos de edad), además del aviso de uso responsable. La edad nunca se usa para decidir ni para fijar umbrales por grupo. *(Equidad; uso responsable)*
 - **FR-027**: Al entrenar, el umbral de decisión MUST elegirse así: el de mayor precision que alcance el recall mínimo; si ninguno lo alcanza, el de mayor recall. En ambos casos el entrenamiento NO se aborta: el modelo se guarda con el detalle de qué criterios cumple y queda como no aprobado si alguno falla. *(KPI: recall, precision; gobernanza)*
 - **FR-028**: El estado del servicio MUST incluir si el modelo está aprobado para despliegue y una lista de alertas con sus razones, sin cambiar el significado de "sano" (que describe solo la salud operativa). *(Operación; gobernanza)*
+- **FR-029** *(trazabilidad de experimentos, opcional; D11)*: Cuando se pida de forma explícita, cada entrenamiento MUST dejar una corrida comparable con: algoritmo, parámetros, semilla, umbral y regla de calibración; métricas técnicas, de negocio y de equidad; versión del modelo, huella del dataset, si queda aprobado y qué criterios cumple; la ficha del modelo, la matriz de confusión y el reporte de equidad; y un ejemplo de entrada que MUST NOT contener el identificador del cliente ni la edad. Si no se pide, el entrenamiento MUST funcionar igual y no crear ningún archivo de seguimiento. El servicio de predicción MUST NOT depender de este registro. *(Gobernanza; reproducibilidad)*
+- **FR-030** *(registro de versiones de modelo, opcional; D11)*: Con el seguimiento activo, cada modelo entrenado MUST quedar registrado como versión «candidata». El estado «producción» MUST NOT asignarse durante el entrenamiento; solo un procedimiento aparte lo asigna, y únicamente si la ficha del modelo dice que está aprobado para despliegue. Se puede forzar solo con un motivo obligatorio, que queda registrado junto a la versión. *(Gobernanza; constitución VI)*
+- **FR-031** *(trazabilidad del monitoreo, opcional; D11)*: Cuando se pida de forma explícita, cada simulación de cambio de datos MUST dejar una corrida con el índice de cambio de cada variable y el informe completo. *(Operación; gobernanza)*
 
 ### Key Entities *(include if feature involves data)*
 
@@ -194,6 +197,7 @@ El equipo de ciencia de datos compara un lote reciente con los datos de entrenam
 - **Resumen de riesgo**: totales de un lote puntuado: clientes en riesgo alto, porcentaje e ingresos mensuales en riesgo.
 - **Lista de contacto**: clientes elegidos para la campaña del mes, ordenados por ingreso esperado en riesgo, con presupuesto, costo por contacto, número de contactos y costo total.
 - **Informe de cambio de datos**: por variable, el índice de cambio frente al entrenamiento y su nivel (estable, alerta, crítico).
+- **Corrida de seguimiento** *(opcional)*: registro de un entrenamiento o de una simulación de cambio de datos, con sus parámetros, métricas, etiquetas y archivos de evidencia.
 - **Modelo**: versión del modelo de predicción, con sus métricas (globales y por grupo de edad), fecha, número de versión (por ejemplo 1.2.0), estado de aprobación y las razones por las que no está aprobado, si aplica.
 
 ## Success Criteria *(mandatory)*
@@ -210,6 +214,8 @@ El equipo de ciencia de datos compara un lote reciente con los datos de entrenam
 - **SC-008**: El resumen de riesgo coincide con el cálculo manual (clientes e ingresos en riesgo) en el 100 % de los lotes de prueba.
 - **SC-009**: El informe de cambio de datos clasifica correctamente como "estable" un lote igual al de entrenamiento y como "crítico" una variable desplazada de forma intencional en el 100 % de los casos probados. Un lote tomado del conjunto de prueba de los datos de origen sale "estable" en todas las variables (índice < 0,10) y el escenario de crisis (cargos y reclamos más altos) sale "crítico".
 - **SC-010**: La diferencia de recall entre grupos de edad es ≤ 0,05 (igualdad de oportunidad, confirmado por el dueño del proyecto) y el ratio de impacto dispar (menor tasa de selección entre grupos / mayor) es ≥ 0,80 (regla de los cuatro quintos). Si alguna condición falla, o algún grupo tiene menos de 100 clientes en la prueba, el modelo no se aprueba: se sigue sirviendo con la alerta de FR-026 hasta que el dueño del modelo lo revise; la promoción es manual y queda documentada. Los criterios no se relajan para que el modelo pase.
+- **SC-011**: Sin la capa opcional de seguimiento instalada, el entrenamiento, la API y las pruebas existentes (331 antes de D11) funcionan igual y no se crea ningún archivo de seguimiento; con ella, un entrenamiento y una simulación de cambio de datos dejan cada uno exactamente una corrida consultable (FR-029, FR-031).
+- **SC-012**: Dos entrenamientos con algoritmos distintos se pueden comparar lado a lado por sus métricas técnicas, de negocio y de equidad; ningún entrenamiento deja una versión en producción, y el 100 % de las promociones forzadas registran su motivo (FR-030).
 
 ## Assumptions
 

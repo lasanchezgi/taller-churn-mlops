@@ -16,13 +16,13 @@ ASUM-DM (negocio) → Spec Kit (constitución, spec, plan, tareas) → código +
 ```
 
 ### Estado actual
-Todo lo de la especificación `specs/002-campana-retencion-monitoreo/` está implementado y probado (331 pruebas):
+Todo lo de la especificación `specs/002-campana-retencion-monitoreo/` está implementado y probado (333 pruebas, 349 con el extra opcional de seguimiento):
 
 | Pieza | Estado | Comando |
 |---|---|---|
 | Datos sintéticos (el CSV existente es la fuente de verdad, D6) | listo | `uv run python -m churn.dataset` |
 | Entrenamiento y model card con huella (`hash_modelo`) | listo; `aprobado_para_despliegue = False` (ver §7) | `uv run python -m churn.train` |
-| Pruebas | listo (**331**) | `uv run pytest` |
+| Pruebas | listo (**333**; 349 con el extra `mlflow`) | `uv run pytest` |
 | `POST /predict`, `POST /predict/lote`, `POST /campana/contactos` | listo | `uv run uvicorn churn.api:app` |
 | `GET /health`, `GET /metrics`, `GET /dashboard`, `POST` y `GET /drift` | listo | ídem |
 | Registro con id hasheado, límite de solicitudes por IP, integridad del modelo | listo | automático al levantar la API |
@@ -60,7 +60,7 @@ Si prefieres instalar todas las herramientas del taller (VS Code, Ollama, OpenCo
 | `business/ASUM-DM.md` | Entendimiento de negocio completo (referencia) |
 | `.specify/memory/constitution.md`, `specs/002-campana-retencion-monitoreo/` | Constitución, spec, plan, tareas y checklists (la 002 reemplaza a `specs/001-api-churn`) |
 | `src/churn/` | Código: `config`, `dataset`, `features`, `train`, `evaluate`, `mitigacion`, `predict`, `campana`, `drift`, `metricas`, `registro`, `limitador`, `recomendaciones`, `api` |
-| `tests/` | 331 pruebas pytest: 189 unitarias (`tests/unit/`), 134 de integración (`tests/integration/`) y 8 de contrato de la API (`tests/test_api.py`) |
+| `tests/` | 349 pruebas pytest con el extra opcional (333 sin él; las 16 de seguimiento se omiten solas): 191 unitarias (`tests/unit/`), 150 de integración (`tests/integration/`) y 8 de contrato de la API (`tests/test_api.py`) |
 | `data/raw/churn_telco.csv` | Dataset sintético determinista (5.000 clientes, semilla 42) |
 | `models/` | Modelo serializado + `model_card.json` |
 | `dashboard/index.html` | Panel de solo lectura sin dependencias; lo sirve `GET /dashboard` y lee `/health` y `/metrics` |
@@ -220,7 +220,7 @@ uv run pytest
 ```
 ```
 ...................................................                      [100%]
-331 passed in 14.86s
+333 passed, 3 skipped in 14.18s
 ```
 (`-q` está activado en `pyproject.toml`; la barra de puntos ocupa varias líneas.)
 
@@ -287,7 +287,7 @@ escenario crisis · estado general: critico · evaluar reentrenamiento
 ```
 Abre <http://localhost:8000/dashboard> (solo lectura). La crisis cambia las entradas, no las etiquetas de churn, por eso el recall *sube*: mide el efecto sobre las variables, no un churn nuevo.
 
-**Atajos** (`make` en macOS/Linux; en Windows `uv run python tareas.py <tarea>`): `make datos`, `entrenar`, `entrenar-rf`, `probar`, `api`, `trafico`, `drift`, `smoke`, `todo`, `limpiar`.
+**Atajos** (`make` en macOS/Linux; en Windows `uv run python tareas.py <tarea>`): `make datos`, `entrenar`, `entrenar-rf`, `probar`, `api`, `trafico`, `drift`, `smoke`, `todo`, `limpiar` (y `mlflow-ui`, ver abajo).
 
 | Endpoint | Propósito |
 |---|---|
@@ -301,6 +301,22 @@ Abre <http://localhost:8000/dashboard> (solo lectura). La crisis cambia las entr
 En `/metrics`, `latencia_ms` mide solo la puntuación del modelo (no la validación ni la serialización) sobre las últimas 1.000 predicciones del proceso, y `roi_esperado` es una estimación, no el ROI incremental del ASUM-DM (que exige grupo de control).
 
 Contrato completo: `specs/002-campana-retencion-monitoreo/contracts/openapi.yaml`. Escenarios de uso: `specs/002-campana-retencion-monitoreo/quickstart.md`.
+
+### Seguimiento de experimentos (opcional)
+Capa **opcional y local** (D11): sin ella todo funciona igual. La API nunca la usa; sigue cargando `models/churn_model.joblib` con su huella.
+Guarda todo en `mlflow.db` y `mlruns/` (ignorados por git), sin servidor ni cuentas.
+
+```bash
+uv sync --extra dev --extra mlflow                 # instala el extra (un `uv sync` sin él lo quita)
+uv run python -m churn.train --mlflow              # regresión logística → experimento «churn-retencion»
+uv run python -m churn.train --algoritmo rf --mlflow
+uv run python -m churn.drift --escenario crisis --mlflow   # experimento «churn-drift»
+make mlflow-ui                                     # = mlflow ui --backend-store-uri sqlite:///mlflow.db → http://127.0.0.1:5000
+# En macOS el puerto 5000 suele estar ocupado por AirPlay: use  uv run mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
+```
+- Cada entrenamiento deja **una corrida** con parámetros, métricas (técnicas, de negocio y de equidad), etiquetas (`version_modelo`, `hash_dataset`, `aprobado_para_despliegue`, `criterios_cumplidos`), la ficha, la matriz de confusión y el reporte de equidad, y registra el modelo `churn-retencion` con el alias `candidato`. El ejemplo de entrada no lleva `id_cliente` ni `rango_edad`.
+- **Comparar LR frente a RF**: en <http://127.0.0.1:5000> abre «churn-retencion», marca las dos corridas y pulsa *Compare*; mira `recall`, `precision_top_5pct`, `dif_max_recall` y `ratio_impacto_dispar`. Tras un `--algoritmo rf --mlflow` vuelve a correr `python -m churn.train` si quieres dejar como servido el modelo de regresión logística: el entrenamiento sobrescribe `models/`.
+- **Promover**: `uv run python scripts/promover_modelo.py` asigna el alias `produccion` solo si la ficha de la versión candidata dice `aprobado_para_despliegue=true`; con `--forzar --motivo "…"` se hace una excepción y el motivo queda como etiqueta. El entrenamiento nunca asigna `produccion`. El alias es un registro: no cambia el modelo que sirve la API. Ver [docs/GOBERNANZA.md](docs/GOBERNANZA.md).
 
 ### Trazabilidad (resumen)
 | Requisito | Tarea | Archivo | Prueba |

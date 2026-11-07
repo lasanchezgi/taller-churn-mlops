@@ -17,9 +17,9 @@ Todo corre en local, con semilla fija, sin cuentas ni servicios de pago.
 
 **Language/Version**: Python 3.11+ (`requires-python = ">=3.11"` ya declarado en `pyproject.toml`)
 
-**Primary Dependencies**: numpy, pandas, scikit-learn (Pipeline + ColumnTransformer + LogisticRegression; alternativa RandomForest), joblib, FastAPI, Pydantic v2, uvicorn. Desarrollo: pytest, httpx (requerido por `TestClient`). Todas ya están en `pyproject.toml`; no se añade ninguna dependencia nueva.
+**Primary Dependencies**: numpy, pandas, scikit-learn (Pipeline + ColumnTransformer + LogisticRegression; alternativa RandomForest), joblib, FastAPI, Pydantic v2, uvicorn. Desarrollo: pytest, httpx (requerido por `TestClient`). Todas ya están en `pyproject.toml`. Única adición (D11): un extra **opcional** `mlflow` para el seguimiento de experimentos; el servicio, el entrenamiento y las pruebas funcionan sin él.
 
-**Storage**: archivos locales. Datos en CSV (`data/raw/churn_telco.csv`), modelo en `models/churn_model.joblib`, model card en `models/model_card.json`, métricas y estado del monitoreo en JSON bajo `reports/metrics/`, registro de predicciones en JSONL (`logs/predicciones.jsonl`). Sin base de datos.
+**Storage**: archivos locales (con el extra opcional, además `mlflow.db` y `mlruns/`, solo locales). Datos en CSV (`data/raw/churn_telco.csv`), modelo en `models/churn_model.joblib`, model card en `models/model_card.json`, métricas y estado del monitoreo en JSON bajo `reports/metrics/`, registro de predicciones en JSONL (`logs/predicciones.jsonl`). Sin base de datos.
 
 **Testing**: pytest con `TestClient` de FastAPI, `testpaths = ["tests"]`. Cada FR tiene al menos una prueba (constitución II).
 
@@ -29,7 +29,7 @@ Todo corre en local, con semilla fija, sin cuentas ni servicios de pago.
 
 **Performance Goals**: predicción individual < 1 s; lote de 1.000 con resumen y lista de contacto < 10 s (SC-003).
 
-**Constraints**: semilla fija `config.SEED`; sin Kubernetes, MLflow, nube ni servicios que requieran cuentas; entrada validada con `extra="forbid"`; ningún identificador en claro en logs; cambios pequeños (un archivo o función por paso).
+**Constraints**: semilla fija `config.SEED`; sin Kubernetes, nube ni servicios que requieran cuentas (el seguimiento de experimentos es opcional y local, D11); entrada validada con `extra="forbid"`; ningún identificador en claro en logs; cambios pequeños (un archivo o función por paso).
 
 **Scale/Scope**: 5.000 clientes de entrenamiento (sintéticos), 7 variables de entrada, lotes de hasta 1.000, 250 contactos al mes, un solo modelo servido a la vez.
 
@@ -53,7 +53,7 @@ Sin violaciones: no se requiere la tabla de Complexity Tracking.
 
 ## Decisiones de la auditoría (2026-11-06)
 
-Registradas en [docs/DECISIONES.md](../../docs/DECISIONES.md) (D1–D10 e interpretaciones I-1 a I-12). Efectos en este plan: los nombres del código mandan (`predict.py`; `Cliente` y `Prediccion` en `api.py`; sin `schemas.py` ni `model_card.py`); la compuerta de promoción usa los 5 criterios de la constitución I; un modelo no aprobado se sirve con alerta de equidad; la referencia de PSI vive en el model card y sale del conjunto de entrenamiento del CSV; la huella del modelo va en `models/model_card.json`; la regresión logística frente al Random Forest se compara solo como intento de mitigación (`mitigacion.py`), sin cambiar el modelo servido.
+Registradas en [docs/DECISIONES.md](../../docs/DECISIONES.md) (D1–D11 e interpretaciones I-1 a I-12). Efectos en este plan: los nombres del código mandan (`predict.py`; `Cliente` y `Prediccion` en `api.py`; sin `schemas.py` ni `model_card.py`); la compuerta de promoción usa los 5 criterios de la constitución I; un modelo no aprobado se sirve con alerta de equidad; la referencia de PSI vive en el model card y sale del conjunto de entrenamiento del CSV; la huella del modelo va en `models/model_card.json`; la regresión logística frente al Random Forest se compara solo como intento de mitigación (`mitigacion.py`), sin cambiar el modelo servido. D11 añade una capa opcional de seguimiento (`seguimiento.py`, `--mlflow` en `train.py` y `drift.py`, `scripts/promover_modelo.py`): la API sigue cargando el `.joblib` con su huella y no la conoce.
 
 ## Project Structure
 
@@ -102,12 +102,13 @@ src/churn/
 ├── registro.py                      # hash con sal y escritura JSONL
 ├── limitador.py                     # límite de solicitudes por IP, en memoria
 ├── mitigacion.py                    # intento único de mitigación de equidad (LR vs RF, proxies)
+├── seguimiento.py                   # (opcional, D11) registra corridas de entrenamiento y drift; importa el extra solo al usarlo
 └── api.py                           # rutas y modelos de entrada/salida (Cliente, Prediccion, ...)
 tests/
 ├── unit/                            # cliente, predict, campana, drift, registro, evaluate, limitador, mitigacion
 ├── integration/                     # rutas con TestClient y entrenamiento de extremo a extremo
 └── conftest.py                      # modelo de prueba pequeño y entradas de ejemplo
-scripts/                             # (existe) smoke_test.py, simular_trafico.py
+scripts/                             # (existe) smoke_test.py, simular_trafico.py; promover_modelo.py (opcional, D11)
 Dockerfile                           # opcional; no es requisito de ningún FR
 ```
 
@@ -138,6 +139,9 @@ Dockerfile                           # opcional; no es requisito de ningún FR
 | FR-024, FR-025 | `tests/unit/test_equidad.py` (revisión de proxies, reparto por grupo, regla de no promoción); FR-025 es un procedimiento documentado en `docs/AUDITORIA_EQUIDAD.md` |
 | FR-026, FR-028 | `tests/integration/test_api_predict.py`, `test_api_salud.py` (alerta de equidad y `alertas` con modelo no aprobado; ausentes si está aprobado) |
 | FR-027 | `tests/integration/test_train_umbral.py` (camino con umbral viable y camino sin umbral viable; no aborta) |
+| FR-029 | `tests/integration/test_train_mlflow.py` (sin la opción no se crea nada; con ella hay una corrida con métricas técnicas, de negocio y de equidad y la etiqueta de aprobación), `tests/unit/test_seguimiento.py` (ejemplo de entrada sin identificador ni edad; mensaje claro si falta el extra) |
+| FR-030 | `tests/integration/test_promover_modelo.py` (no aprobado sin forzar: falla y no asigna; aprobado: asigna; forzar sin motivo falla; forzar con motivo lo deja registrado; el entrenamiento nunca asigna producción) |
+| FR-031 | `tests/integration/test_drift_mlflow.py` (corrida con el PSI de cada variable y el informe) |
 
 ## Complexity Tracking
 

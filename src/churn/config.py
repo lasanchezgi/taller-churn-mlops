@@ -21,6 +21,15 @@ DASHBOARD_PATH = ROOT / "dashboard" / "index.html"
 LOGS_DIR = ROOT / "logs"
 PREDICTIONS_LOG = LOGS_DIR / "predicciones.jsonl"
 
+# Seguimiento opcional de experimentos (T137, D11): todo local, sin servidor remoto
+MLFLOW_TRACKING_URI = f"sqlite:///{ROOT / 'mlflow.db'}"
+MLFLOW_ARTIFACTS_DIR = ROOT / "mlruns"
+MLFLOW_EXPERIMENTO_ENTRENAMIENTO = "churn-retencion"
+MLFLOW_EXPERIMENTO_DRIFT = "churn-drift"
+MLFLOW_MODELO_REGISTRADO = "churn-retencion"
+ALIAS_CANDIDATO = "candidato"
+ALIAS_PRODUCCION = "produccion"
+
 # Reproducibilidad
 SEED = 42
 N_CLIENTES = 5000

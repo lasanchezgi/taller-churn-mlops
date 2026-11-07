@@ -1,7 +1,7 @@
 # Registro de decisiones
 
 Decisiones del dueño del proyecto tomadas a partir de `docs/AUDITORIA.md` (sección 6). No se reabren; si una
-cambia, se añade una entrada nueva que la reemplace. Fecha de todas: **2026-11-06**.
+cambia, se añade una entrada nueva que la reemplace. Fecha de D1–D10: **2026-11-06**; D11: **2026-11-07**.
 
 | ID | Decisión | Justificación | Dónde se aplica |
 |---|---|---|---|
@@ -15,6 +15,7 @@ cambia, se añade una entrada nueva que la reemplace. Fecha de todas: **2026-11-
 | D8 | `/health` mantiene el contrato del spec (`estado: sano/no_sano`). «Sano» = modelo cargado e íntegro. Se añaden `aprobado_para_despliegue` y `alertas` (lista) sin cambiar el significado de `estado`. `smoke_test.py` se corrige a este contrato. | Evita romper el contrato; la aprobación es otra dimensión. | spec FR-013, FR-028; tareas T111–T112, T124–T125 |
 | D9 | Spec Kit: no se reinstala nada. El README documenta las dos variantes: `/speckit-*` (Claude Code) y `/speckit.*` (OpenCode). | No cambiar el entorno del taller. | README (T131) |
 | D10 | La meta de −3 pp no cambia. El ASUM-DM gana una sección de brecha: cuánto mueve la tasa la campaña actual y cuántos contactos y cuánto presupuesto harían falta para −3 pp. Queda como riesgo abierto que decide el negocio. | La meta es del negocio, no del equipo técnico. | ASUM-DM (T132); GOBERNANZA (T126) |
+| D11 | **Seguimiento de experimentos y registro de versiones de modelo, opcional y local.** Revierte parcialmente la decisión «sin MLflow»: MLflow pasa a ser una capa opcional (extra `mlflow` de `pyproject.toml`), con base SQLite local (`mlflow.db`) y artefactos en `./mlruns`, sin servidor remoto ni cuentas. `train.py --mlflow` y `drift.py --mlflow` registran una corrida cada uno; el modelo entra al registro con el alias `candidato`. El alias `produccion` nunca lo asigna el entrenamiento: lo asigna `scripts/promover_modelo.py`, solo si la ficha dice `aprobado_para_despliegue=true`, o con `--forzar` y un motivo obligatorio que queda como etiqueta. La API **no** depende de MLflow: sigue cargando `models/churn_model.joblib` con su verificación de huella. | Comparar corridas (regresión logística frente a Random Forest) y dejar un historial auditable de qué versión se entrenó con qué datos y quién la promovió, sin añadir servicios ni dependencias obligatorias. Se mantiene el espíritu de la regla anterior (autonomía local): sin extra instalado, todo funciona igual y las 331 pruebas pasan. | constitución III (v2.1.0); `AGENTS.md`; plan; spec FR-029–FR-031, SC-011, SC-012; tareas T137–T148; `docs/GOBERNANZA.md`; README |
 
 ## Interpretaciones necesarias para aplicar las decisiones
 

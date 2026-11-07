@@ -1,5 +1,5 @@
 # Atajos para macOS/Linux. En Windows use: uv run python tareas.py <tarea>
-.PHONY: datos entrenar entrenar-rf probar api trafico drift smoke todo limpiar
+.PHONY: datos entrenar entrenar-rf probar api trafico drift smoke todo limpiar mlflow-ui
 datos:       ; uv run python tareas.py datos
 entrenar:    ; uv run python tareas.py entrenar
 entrenar-rf: ; uv run python tareas.py entrenar-rf
@@ -10,3 +10,4 @@ drift:       ; uv run python tareas.py drift
 smoke:       ; uv run python tareas.py smoke
 todo:        ; uv run python tareas.py todo
 limpiar:     ; uv run python tareas.py limpiar
+mlflow-ui:   ; uv run mlflow ui --backend-store-uri sqlite:///mlflow.db

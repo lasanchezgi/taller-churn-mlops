@@ -9,3 +9,7 @@ data/drift/*.csv
 logs/*.tmp
 data/processed/*
 !data/processed/.gitkeep
+
+# Seguimiento opcional de experimentos (D11)
+mlflow.db
+mlruns/

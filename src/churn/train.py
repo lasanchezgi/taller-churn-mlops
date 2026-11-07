@@ -1,6 +1,8 @@
 """Entrenamiento del modelo de churn (T015, T119, T121; FR-016, FR-018, FR-024, FR-027, SC-004, SC-010).
 
-Uso: python -m churn.train [--algoritmo logreg|rf]
+Uso: python -m churn.train [--algoritmo logreg|rf] [--mlflow]
+
+--mlflow registra la corrida en el seguimiento local opcional (T143, FR-029, FR-030; D11).
 """
 import argparse
 import hashlib
@@ -204,14 +206,19 @@ def entrenar(df, algoritmo: str = "logreg", hash_dataset: str | None = None) -> 
         "perfil_referencia": perfil_referencia(X_tr),
     }
     return {"pipeline": pipe, "card": card, "umbral": umbral, "algoritmo": algoritmo,
-            "metricas": tecnicas}
+            "metricas": tecnicas, "ejemplo_entrada": X_te.head(5).copy()}
 
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description="Entrena el modelo de churn")
     ap.add_argument("--algoritmo", choices=ALGORITMOS, default="logreg",
                     help="rf solo si la regresión logística no cumple los criterios")
+    ap.add_argument("--mlflow", action="store_true",
+                    help="registrar la corrida y el modelo (candidato) en el seguimiento local; requiere el extra")
     args = ap.parse_args(argv)
+    if args.mlflow:
+        from churn import seguimiento
+        seguimiento.importar_mlflow()  # falla pronto, antes de entrenar, si falta el extra
 
     res = entrenar(cargar_datos(config.DATA_RAW), args.algoritmo, hash_archivo(config.DATA_RAW))
     card = res["card"]
@@ -230,6 +237,9 @@ def main(argv=None) -> None:
     print("aprobado_para_despliegue =", card["aprobado_para_despliegue"])
     for razon in card["razones_no_aprobado"]:
         print("  no aprobado:", razon)
+    if args.mlflow:
+        print("seguimiento: corrida", seguimiento.registrar_entrenamiento(res, card),
+              "· modelo 'churn-retencion' con alias 'candidato'")
 
 
 if __name__ == "__main__":

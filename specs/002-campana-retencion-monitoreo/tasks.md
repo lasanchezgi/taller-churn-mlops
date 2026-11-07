@@ -355,7 +355,7 @@ Task: "tests/unit/test_evaluate.py"  Task: "tests/unit/test_cliente.py"
 
 ## Notes
 
-- 136 tareas (T001–T136). `[P]` solo donde no hay conflicto de archivos. Los IDs T069–T088 (Fase 12) se ejecutan antes de T066; las etapas de la Fase 14 ordenan lo pendiente.
+- 148 tareas (T001–T148). `[P]` solo donde no hay conflicto de archivos. Los IDs T069–T088 (Fase 12) se ejecutan antes de T066; las etapas de la Fase 14 ordenan lo pendiente.
 - Cada tarea cita el FR o SC que cubre; la matriz FR → prueba de `plan.md` sigue siendo la referencia.
 - Antes de cerrar cada tarea: `uv run pytest` en verde (constitución II).
 - Pendientes que no son de código: T064 (textos de Retención y Legal) y T068 (aprobación del dueño del modelo).
@@ -432,3 +432,18 @@ Task: "tests/unit/test_evaluate.py"  Task: "tests/unit/test_cliente.py"
 - [x] T134 Reconciliar las casillas de este archivo con el código y las pruebas (T101)
 - [x] T135 Repetir la auditoría completa (5 fases) y agregar a `docs/AUDITORIA.md` la sección «Re-auditoría» con la tabla antes/después por severidad; justificar todo lo que siga abierto; commit
 - [x] T136 Verificación final: `scripts/brecha_meta.py` con `tests/unit/test_brecha_meta.py` (fórmula de la brecha de −3 pp, ≈ 1,1 pp con precision del top 5 %; ASUM-DM §1.4); reforzar las pruebas T008, T019, T043, T049 y T099; construir la imagen (`docker build -t churn-api .`) y comprobar `/health` en el contenedor (D10)
+
+### Etapa 5 · Seguimiento de experimentos opcional (D11; FR-029–FR-031, SC-011, SC-012)
+
+- [x] T137 Añadir el extra opcional `mlflow` en `pyproject.toml`, las constantes de seguimiento en `src/churn/config.py` (`MLFLOW_TRACKING_URI`, `MLFLOW_ARTIFACTS_DIR`, nombres de experimentos y del modelo registrado) y `mlflow.db`, `mlruns/` en `.gitignore`; revisar la API instalada (alias del registro, no etapas) antes de codificar (FR-029; D11)
+- [x] T138 [P] Escribir `tests/integration/test_train_mlflow.py` (antes de T142–T143): sin `--mlflow` no se crea `mlflow.db`; con `--mlflow` y la URI en `tmp_path` hay una corrida con métricas técnicas, de negocio y de equidad y la etiqueta `aprobado_para_despliegue`; el modelo queda con el alias `candidato` y nunca con `produccion`; sin el extra, mensaje claro (FR-029, FR-030, SC-011)
+- [x] T139 [P] Escribir `tests/unit/test_seguimiento.py` (antes de T142): el ejemplo de entrada no contiene `id_cliente` ni `rango_edad`; la firma del modelo trae solo `config.FEATURES` (FR-029; constitución IV)
+- [x] T140 [P] Escribir `tests/integration/test_promover_modelo.py` (antes de T145): modelo no aprobado sin `--forzar` → falla y no asigna `produccion`; aprobado → asigna; `--forzar` sin motivo → falla; con motivo → asigna y deja el motivo como etiqueta (FR-030, SC-012)
+- [x] T141 [P] Escribir `tests/integration/test_drift_mlflow.py` (antes de T144): con `--mlflow` hay una corrida en «churn-drift» con el PSI de cada variable y `drift.json`; sin la opción no se crea nada (FR-031, SC-011)
+- [x] T142 Implementar `src/churn/seguimiento.py` (tras T138, T139): importa `mlflow` solo al usarse; registra corrida, modelo con firma y alias `candidato` (FR-029, FR-030, FR-031)
+- [x] T143 Añadir `--mlflow` a `src/churn/train.py` (tras T142): registra tras guardar el modelo y el model card; sin la opción el flujo no cambia (FR-029, SC-011)
+- [x] T144 Añadir `--mlflow` a `src/churn/drift.py` (tras T141, T142): una corrida en «churn-drift» (FR-031)
+- [x] T145 Implementar `scripts/promover_modelo.py` (tras T140, T142): asigna `produccion` solo si la ficha dice aprobado; `--forzar` exige `--motivo` y lo deja como etiqueta (FR-030)
+- [x] T146 Añadir `mlflow-ui` al `Makefile` y a `tareas.py` (`mlflow ui --backend-store-uri sqlite:///mlflow.db`) (FR-029)
+- [x] T147 Documentar D11: `docs/DECISIONES.md`, constitución 2.1.0, `AGENTS.md`, plan, README («Seguimiento de experimentos (opcional)») y `docs/GOBERNANZA.md` (el alias `produccion` y el motivo de `--forzar`)
+- [x] T148 Verificación: entrenar con regresión logística y con Random Forest con `--mlflow`, correr drift de crisis con `--mlflow`, levantar la interfaz y confirmar las 3 corridas; `uv run pytest` con y sin el extra; dejar el modelo servido como estaba (SC-011, SC-012)

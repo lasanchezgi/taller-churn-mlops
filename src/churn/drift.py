@@ -1,6 +1,8 @@
 """Cambio de datos (PSI) y simulación de crisis (T051, T055, T108; FR-014, SC-009).
 
-Uso: python -m churn.drift [--escenario base|crisis]
+Uso: python -m churn.drift [--escenario base|crisis] [--mlflow]
+
+--mlflow registra una corrida en el seguimiento local opcional (T144, FR-031; D11).
 """
 import argparse
 import json
@@ -103,7 +105,11 @@ def simular(escenario: str = "crisis", ruta_salida=None, df=None, modelo=None) -
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description="PSI por variable y simulación de escenario")
     ap.add_argument("--escenario", choices=("base", "crisis"), default="crisis")
+    ap.add_argument("--mlflow", action="store_true", help="registrar la corrida en el seguimiento local; requiere el extra")
     args = ap.parse_args(argv)
+    if args.mlflow:
+        from churn import seguimiento
+        seguimiento.importar_mlflow()
     r = simular(args.escenario)
     s = r["simulacion"]
     print(f"escenario {args.escenario} · estado general: {r['estado_general']} · {r['recomendacion']}")
@@ -115,6 +121,8 @@ def main(argv=None) -> None:
     print(f"  ingresos 6 meses en riesgo: {b['negocio']['ingresos_6_meses_en_riesgo']:.0f} → "
           f"{o['negocio']['ingresos_6_meses_en_riesgo']:.0f} USD")
     print(f"guardado en {config.DRIFT_REPORT_PATH}")
+    if args.mlflow:
+        print("seguimiento: corrida", seguimiento.registrar_drift(r), "en 'churn-drift'")
 
 
 if __name__ == "__main__":

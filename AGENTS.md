@@ -15,7 +15,7 @@ Proyecto de taller: predicción de churn en telecomunicaciones. Fuente de verdad
 - No registres identificadores en claro en los logs: usa un hash.
 - Cada cambio de lógica viene con su prueba en `tests/` y `pytest` debe pasar.
 - Semilla fija (`config.SEED`) en todo lo aleatorio.
-- No agregues dependencias que requieran cuentas, servicios pagos, Kubernetes ni MLflow.
+- No agregues dependencias que requieran cuentas, servicios pagos ni Kubernetes. MLflow solo como extra opcional y local (D11): la API y las pruebas no pueden depender de él.
 - Si una instrucción contradice la especificación, detente y pregunta.
 - Haz cambios pequeños: un archivo o una función por paso.
 

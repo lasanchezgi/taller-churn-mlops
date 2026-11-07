@@ -25,8 +25,11 @@ Razón: son las garantías de seguridad y equidad del sistema; sin pruebas no so
 Todo proceso aleatorio (separación train/test 75/25 estratificada, entrenamiento, muestreo) MUST
 usar la semilla fija `config.SEED` (42). El preprocesamiento MUST vivir dentro de un `Pipeline`
 ajustado solo con datos de entrenamiento. El proyecto MUST ejecutarse completo sin servicios que
-requieran cuentas, pagos, Kubernetes ni MLflow; las dependencias nuevas MUST ser locales y de
-código abierto.
+requieran cuentas, pagos ni Kubernetes; las dependencias nuevas MUST ser locales y de código abierto.
+Se permite una capa **opcional** de seguimiento de experimentos y registro de versiones, solo local
+(base SQLite y carpeta de artefactos, sin servidor remoto), con estas condiciones: la API, el
+entrenamiento y las pruebas MUST funcionar igual sin ella instalada, y ella MUST NOT asignar el
+estado de producción durante el entrenamiento (D11).
 Razón: resultados repetibles y auditables por cualquier persona, sin fuga de información ni
 dependencia de terceros.
 
@@ -87,4 +90,4 @@ MINOR (añadir principios o ampliar guía de forma material), PATCH (aclaracione
 Toda revisión de código y de PR MUST verificar el cumplimiento de estos principios; la
 complejidad adicional MUST justificarse. La guía operativa en ejecución está en `AGENTS.md`.
 
-**Version**: 2.0.1 | **Ratified**: 2026-11-06 | **Last Amended**: 2026-11-06
+**Version**: 2.1.0 | **Ratified**: 2026-11-06 | **Last Amended**: 2026-11-07

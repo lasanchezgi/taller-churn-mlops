@@ -36,6 +36,18 @@ Reglas:
   el dueño del modelo la registra en `aprobacion` después de revisar las razones; ningún criterio se relaja
   para que el modelo «pase».
 
+### Alias «produccion» (opcional, D11)
+
+Si se usa el registro local de versiones (`python -m churn.train --mlflow`), cada modelo entrenado queda como versión
+`candidato`. El alias **`produccion` es el mecanismo de aprobación en el registro** y solo lo asigna
+`scripts/promover_modelo.py`; el entrenamiento nunca lo hace.
+- Sin `--forzar`, el script lo asigna únicamente si la ficha de esa versión dice `aprobado_para_despliegue=true`
+  (la compuerta técnica de la sección 2). Si es `false`, falla y no asigna nada.
+- `--forzar` es una excepción y **exige `--motivo`** (no vacío). El motivo queda como etiqueta `motivo_forzado` de la versión,
+  junto con `promocion_forzada=true` y la fecha. Forzar no relaja ningún criterio ni sustituye la firma del dueño del modelo
+  en `aprobacion`: solo deja constancia de quién decidió promover un modelo que no pasó la compuerta, y por qué (coherente con D2).
+- El alias es un registro: la API sigue sirviendo `models/churn_model.joblib` con su verificación de huella.
+
 ## 2. Condiciones para pasar a producción
 
 Todas deben cumplirse (ASUM-DM §8, constitución VI):
