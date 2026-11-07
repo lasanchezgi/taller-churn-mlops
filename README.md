@@ -16,13 +16,13 @@ ASUM-DM (negocio) → Spec Kit (constitución, spec, plan, tareas) → código +
 ```
 
 ### Estado actual
-Todo lo de la especificación `specs/002-campana-retencion-monitoreo/` está implementado y probado (325 pruebas):
+Todo lo de la especificación `specs/002-campana-retencion-monitoreo/` está implementado y probado (331 pruebas):
 
 | Pieza | Estado | Comando |
 |---|---|---|
 | Datos sintéticos (el CSV existente es la fuente de verdad, D6) | listo | `uv run python -m churn.dataset` |
 | Entrenamiento y model card con huella (`hash_modelo`) | listo; `aprobado_para_despliegue = False` (ver §7) | `uv run python -m churn.train` |
-| Pruebas | listo (**325**) | `uv run pytest` |
+| Pruebas | listo (**331**) | `uv run pytest` |
 | `POST /predict`, `POST /predict/lote`, `POST /campana/contactos` | listo | `uv run uvicorn churn.api:app` |
 | `GET /health`, `GET /metrics`, `GET /dashboard`, `POST` y `GET /drift` | listo | ídem |
 | Registro con id hasheado, límite de solicitudes por IP, integridad del modelo | listo | automático al levantar la API |
@@ -60,7 +60,7 @@ Si prefieres instalar todas las herramientas del taller (VS Code, Ollama, OpenCo
 | `business/ASUM-DM.md` | Entendimiento de negocio completo (referencia) |
 | `.specify/memory/constitution.md`, `specs/002-campana-retencion-monitoreo/` | Constitución, spec, plan, tareas y checklists (la 002 reemplaza a `specs/001-api-churn`) |
 | `src/churn/` | Código: `config`, `dataset`, `features`, `train`, `evaluate`, `mitigacion`, `predict`, `campana`, `drift`, `metricas`, `registro`, `limitador`, `recomendaciones`, `api` |
-| `tests/` | 325 pruebas pytest: 185 unitarias (`tests/unit/`), 132 de integración (`tests/integration/`) y 8 de contrato de la API (`tests/test_api.py`) |
+| `tests/` | 331 pruebas pytest: 189 unitarias (`tests/unit/`), 134 de integración (`tests/integration/`) y 8 de contrato de la API (`tests/test_api.py`) |
 | `data/raw/churn_telco.csv` | Dataset sintético determinista (5.000 clientes, semilla 42) |
 | `models/` | Modelo serializado + `model_card.json` |
 | `dashboard/index.html` | Panel de solo lectura sin dependencias; lo sirve `GET /dashboard` y lee `/health` y `/metrics` |
@@ -220,7 +220,7 @@ uv run pytest
 ```
 ```
 ...................................................                      [100%]
-325 passed in 14.47s
+331 passed in 14.86s
 ```
 (`-q` está activado en `pyproject.toml`; la barra de puntos ocupa varias líneas.)
 

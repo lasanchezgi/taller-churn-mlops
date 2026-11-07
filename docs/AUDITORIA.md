@@ -352,7 +352,7 @@ Criterios de la constitución con el CSV: precision en el 5 % (k = 62) 0,758; RO
 
 | Hallazgo | Estado | Evidencia |
 |---|---|---|
-| M1 · README desactualizado | ✅ | Conteo real de pruebas (325), estado real de las rutas, comandos y salidas ejecutados en macOS, sin referencia a `referencia/`, generador solo para demos (D6) |
+| M1 · README desactualizado | ✅ | Conteo real de pruebas (331), estado real de las rutas, comandos y salidas ejecutados en macOS, sin referencia a `referencia/`, generador solo para demos (D6) |
 | M2 · Comandos de Spec Kit | ✅ | README: tabla `/speckit-*` (Claude Code) frente a `/speckit.*` (OpenCode) (D9) |
 | M3 · `uv sync` quita `pytest` | ✅ | `[dependency-groups] dev` en `pyproject.toml`: `uv sync` a secas conserva `pytest`; `--extra dev` sigue funcionando |
 | M4 · Atajos rotos en macOS | ✅ | `Makefile` usa `uv run python tareas.py`; `make datos`, `probar`, `drift` y `smoke` ejecutados |
@@ -379,7 +379,7 @@ Fecha: 2026-11-07 · Rama `main`, tras las etapas 0 a 4 · Alcance: repositorio 
 ### Fase 1 · Inventario y fuentes
 - Fuente de verdad: `business/ASUM-DM.md` → `.specify/memory/constitution.md` 2.0.1 → `specs/002-…` (la 001 está marcada «Reemplazada»); `AGENTS.md` ya apunta a la 002.
 - `src/churn/`: 15 módulos, 1.606 líneas; 41 archivos de prueba; 139 archivos versionados.
-- Spec: 28 FR y 10 SC. `tasks.md`: 135 tareas, 129 marcadas; las 6 sin marcar son T007, T012 y T093 (sustituidas u obsoletas por decisión, D7), T064 y T068 (pasos humanos) y T135 (esta re-auditoría).
+- Spec: 28 FR y 10 SC. `tasks.md`: 136 tareas, 131 marcadas; las 5 sin marcar son T007, T012 y T093 (sustituidas u obsoletas por decisión, D7) y T064 y T068 (pasos humanos).
 - `docs/prompts_taller.md` sigue sin existir (el equivalente es `prompts/PROMPTS_OPENCODE.md`).
 
 ### Fase 2 · Ejecución real
@@ -389,7 +389,7 @@ Fecha: 2026-11-07 · Rama `main`, tras las etapas 0 a 4 · Alcance: repositorio 
 | 1 | `uv sync` | Entorno listo, conserva `pytest` | `pytest 9.2.0` sigue instalado | ⚠️ | ✅ |
 | 2 | `uv run python -m churn.dataset` | Informa y no pisa el CSV | `5000 filas · escenario base · churn 24.7%` + «ya existe; use --forzar»; md5 del CSV igual | ⚠️ | ✅ (documentado: el CSV es fuente de verdad, D6) |
 | 3 | `uv run python -m churn.train` (×2) | Métricas ≥ umbrales y reproducible | `logreg · umbral 0.538 · recall 0.734 · precision 0.493 · ROC-AUC 0.811`; los 5 criterios y la razón de no aprobación (brecha 0,147). Dos corridas: el card difiere solo en `fecha_entrenamiento` y `hash_modelo` | ✅/❌ | ✅ técnico / ❌ equidad (abierto, B5) |
-| 4 | `uv run pytest` | Todo en verde | `325 passed in 14.47s` (185 unitarias, 132 de integración, 8 de contrato) | ✅ | ✅ |
+| 4 | `uv run pytest` | Todo en verde | `331 passed in 14.86s` (189 unitarias, 134 de integración, 8 de contrato) | ✅ | ✅ |
 | 5 | `uv run python -m churn.drift --escenario crisis` | Informe PSI + comparación | `critico`; `reclamos_ult_3m` PSI 3,275 y `cargo_mensual` 0,227; base estable | ⚠️ | ✅ |
 | 6 | `scripts/simular_trafico.py --escenario crisis --n 500` | Envía clientes | Sin API: «No se pudo conectar … ¿Está corriendo uvicorn?»; con API: `[ok] 500 clientes (crisis) enviados` | ❌ | ✅ |
 | 7 | Rutas de la API | Todas existen | `/predict`, `/predict/lote`, `/campana/contactos`, `/drift` (POST y GET), `/health`, `/metrics`, `/dashboard` responden según contrato | ❌ | ✅ |
@@ -460,4 +460,4 @@ KPI sin requisito (heredado): «Costo por cliente retenido» sigue sin FR propio
 
 Además, **fuera de los hallazgos originales y sin cerrar**: D10 (la meta de −3 pp exige ≈ 800 contactos y ≈ 6.400 USD al mes frente a 250 y 2.000 USD; `business/ASUM-DM.md` §1.4) es una decisión del negocio, y T068 (aprobación del dueño del modelo) es manual.
 
-**Conclusión.** De 28 hallazgos quedan 5, todos con dueño que no es el código. El servicio funciona de punta a punta, cumple los requisitos de privacidad y seguridad con pruebas, y cuenta con 325 pruebas en verde. Su única condición incumplida es la equidad por edad, que está medida, avisada en cada respuesta y documentada.
+**Conclusión.** De 28 hallazgos quedan 5, todos con dueño que no es el código. El servicio funciona de punta a punta, cumple los requisitos de privacidad y seguridad con pruebas, y cuenta con 331 pruebas en verde. Su única condición incumplida es la equidad por edad, que está medida, avisada en cada respuesta y documentada.

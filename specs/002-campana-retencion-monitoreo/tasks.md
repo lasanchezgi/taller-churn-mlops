@@ -355,7 +355,7 @@ Task: "tests/unit/test_evaluate.py"  Task: "tests/unit/test_cliente.py"
 
 ## Notes
 
-- 135 tareas (T001–T135). `[P]` solo donde no hay conflicto de archivos. Los IDs T069–T088 (Fase 12) se ejecutan antes de T066; las etapas de la Fase 14 ordenan lo pendiente.
+- 136 tareas (T001–T136). `[P]` solo donde no hay conflicto de archivos. Los IDs T069–T088 (Fase 12) se ejecutan antes de T066; las etapas de la Fase 14 ordenan lo pendiente.
 - Cada tarea cita el FR o SC que cubre; la matriz FR → prueba de `plan.md` sigue siendo la referencia.
 - Antes de cerrar cada tarea: `uv run pytest` en verde (constitución II).
 - Pendientes que no son de código: T064 (textos de Retención y Legal) y T068 (aprobación del dueño del modelo).
@@ -431,3 +431,4 @@ Task: "tests/unit/test_evaluate.py"  Task: "tests/unit/test_cliente.py"
 - [x] T133 Resolver los hallazgos 🟡 restantes de `docs/AUDITORIA.md` (M3, M4, M6–M12): `dependency-groups` o aviso de `uv sync`, `Makefile`/`tareas.py` con `uv run`, mensajes de validación (T091, T092, T094), campo `campo` en JSON malformado, skills y `PLAN_B` que aún apuntan a la 001, `.gitignore` (T102), `Dockerfile` (T061)
 - [x] T134 Reconciliar las casillas de este archivo con el código y las pruebas (T101)
 - [x] T135 Repetir la auditoría completa (5 fases) y agregar a `docs/AUDITORIA.md` la sección «Re-auditoría» con la tabla antes/después por severidad; justificar todo lo que siga abierto; commit
+- [x] T136 Verificación final: `scripts/brecha_meta.py` con `tests/unit/test_brecha_meta.py` (fórmula de la brecha de −3 pp, ≈ 1,1 pp con precision del top 5 %; ASUM-DM §1.4); reforzar las pruebas T008, T019, T043, T049 y T099; construir la imagen (`docker build -t churn-api .`) y comprobar `/health` en el contenedor (D10)
