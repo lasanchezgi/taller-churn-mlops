@@ -308,3 +308,32 @@ Notas de la etapa:
 - **Crisis sobre el CSV:** `reclamos_ult_3m` pasa a crítico (PSI 3,27) y `cargo_mensual` a alerta (0,227); estado general crítico (SC-009). Para la prueba pedí «al menos alerta» en `cargo_mensual`; no se tocó ningún criterio del spec.
 - **Límite de la simulación:** la crisis cambia solo las variables, no las etiquetas de churn, así que el recall *sube* (0,734 → 0,868) y la precision baja (0,493 → 0,399); `alerta_recall` no se activa. Mide el efecto de la crisis sobre las entradas del modelo, no un churn nuevo.
 - **Sin cambios:** el modelo sigue sin cumplir la equidad (B5), la API aún no escribe el registro (B2) y no hay límite de solicitudes ni integridad (I5): son las etapas 2 y 3.
+
+### Etapa 2 · Gobernanza y equidad
+
+| Hallazgo | Estado | Evidencia |
+|---|---|---|
+| I1 · Criterios 5 frente a 3 | ✅ | `train.py` evalúa recall, precision, precision en el 5 %, ROC-AUC y ROI ≥ 3 (+ equidad); `evaluate.precision_en_top` y `roi_estimado`; `tests/unit/test_evaluate.py`, `tests/integration/test_train.py` |
+| I3 · Regla del umbral | ✅ | `train.elegir_umbral` (FR-027): ya no aborta; guarda `regla_umbral`; `tests/integration/test_train_umbral.py` prueba ambos caminos |
+| I2 · Modelo no aprobado servido sin aviso | ✅ | Decisión D2: `/predict` y `/predict/lote` traen `alerta_equidad`; `/health` trae `aprobado_para_despliegue` y `alertas` (`estado` sigue siendo salud operativa); `tests/integration/test_api_alerta_equidad.py`; promoción manual en `docs/GOBERNANZA.md` |
+| M9 · Ratio de impacto dispar | ✅ | Condición de aprobación ≥ 0,80 (`criterios_cumplidos.ratio_impacto_dispar`); hoy 0,903 |
+| I4 · Model card frente al data-model | ⚠️ | Hecho: `regla_umbral`, `criterios_cumplidos` (8), `razones_no_aprobado`, `revision_proxies`, `precision_top`, `roi_estimado`, precision y reparto del 5 % por grupo. Falta `hash_modelo` (Etapa 3, T128–T129) |
+| I6 · FR-024 / FR-025 | ⚠️ | FR-024 ✅ (`revision_proxies` en el card y `churn.mitigacion`). FR-025 (`docs/AUDITORIA_EQUIDAD.md`, T087) queda para la Etapa 4 |
+| B5 · SC-010 (brecha de recall ≤ 0,05) | ⚠️ **Abierto, justificado** | Sigue en 0,147 (18-25: 0,797; 60+: 0,650). Por D2 se sirve como no aprobado, con alerta; el criterio no se relajó. Ver el intento de mitigación abajo |
+
+**Intento de mitigación (D2)** — `python -m churn.mitigacion`, `reports/metrics/mitigacion_equidad.json`, mismo split y semilla:
+
+| Variante | Recall | Brecha de recall | Ratio de impacto dispar |
+|---|---|---|---|
+| Base: regresión logística | 0,734 | **0,147** | 0,903 |
+| Sin `metodo_pago` | 0,727 | 0,147 | 0,906 |
+| Sin `tipo_plan` | 0,737 | 0,095 | 0,856 |
+| Sin `antiguedad_meses` | 0,734 | 0,075 | 0,850 |
+| Random Forest | 0,730 | 0,162 | 0,861 |
+
+- **Ninguna variante baja de 0,05** (la mejor es 0,075): se documenta y no se fuerza; el modelo servido no cambia.
+- **Proxies de la edad:** la asociación de cada variable con `rango_edad` (V de Cramér) es baja: `tipo_plan` 0,134, `cargo_mensual` 0,094, el resto ≤ 0,04. No hay un proxy fuerte que explique la brecha.
+- **Ruido:** el grupo `60+` tiene 133 clientes y solo 40 positivos en la prueba (`18-25`: 64); el error estándar de la diferencia entre ambos recalls es ≈ 0,09, así que 0,147 equivale a ~1,6 desviaciones. No prueba que no haya sesgo, pero tampoco permite afirmarlo: hace falta más datos por grupo antes de decidir.
+- **Sobre el camino 2 de D4:** con `MIN_RECALL = 0,70` el segundo camino («mayor recall») es prácticamente inalcanzable, porque marcar a todos los clientes da recall 1,0. Se probó forzando `MIN_RECALL` por encima de 1. En la práctica el modelo queda no aprobado por otros criterios, como hoy por la equidad.
+
+Criterios de la constitución con el CSV: precision en el 5 % (k = 62) 0,758; ROI estimado 9,33; los cinco cumplen.

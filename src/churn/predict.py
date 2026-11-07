@@ -32,6 +32,21 @@ def nivel_riesgo(probabilidad: float) -> str:
     return "bajo"
 
 
+def alerta_equidad(card: dict) -> str | None:
+    """Texto de alerta si el modelo no está aprobado para despliegue; None si lo está (FR-026, D2)."""
+    if card.get("aprobado_para_despliegue") is True:
+        return None
+    return ("Alerta de equidad: modelo no aprobado para despliegue ("
+            + "; ".join(razones_no_aprobado(card)) + "). Úselo solo como apoyo con revisión humana.")
+
+
+def razones_no_aprobado(card: dict) -> list[str]:
+    """Razones del card; si faltan, un texto genérico (nunca una lista vacía en un modelo no aprobado)."""
+    if card.get("aprobado_para_despliegue") is True:
+        return []
+    return list(card.get("razones_no_aprobado") or ["no cumple las condiciones de aprobación"])
+
+
 def puntuar(modelo: dict | None, cliente: dict) -> dict:
     """Probabilidad, nivel, recomendación y versión; solo usa config.FEATURES."""
     if modelo is None:

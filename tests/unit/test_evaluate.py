@@ -3,7 +3,9 @@ import numpy as np
 import pytest
 
 from churn import config
-from churn.evaluate import metricas_equidad, metricas_negocio, metricas_tecnicas
+from churn.evaluate import (
+    metricas_equidad, metricas_negocio, metricas_tecnicas, precision_en_top, roi_estimado,
+)
 
 # Caso calculado a mano con umbral 0,5: pred = [1, 1, 0, 0, 1, 0]
 Y = np.array([1, 0, 1, 0, 1, 0])
@@ -75,3 +77,54 @@ def test_equidad_sin_seleccionados_no_divide_por_cero():
     g = np.array(["a"] * 3 + ["b"] * 3)
     m = metricas_equidad(Y, P, g, 0.99)
     assert m["ratio_impacto_dispar"] is None
+
+
+# --- Criterios de promoción de la constitución I (T116; FR-018, SC-004, SC-010; D1, D3)
+def test_precision_en_top_contra_calculo_manual():
+    # Orden por probabilidad: 0.9(1) 0.7(1) 0.6(0) 0.4(1) 0.2(0) 0.1(0)
+    r = precision_en_top(Y, P, fraccion=0.5)
+    assert r["k"] == 3 and r["precision"] == pytest.approx(2 / 3)
+    assert precision_en_top(Y, P, fraccion=1 / 3)["precision"] == pytest.approx(1.0)
+
+
+def test_k_es_el_5_por_ciento_del_conjunto_evaluado():
+    assert precision_en_top(np.zeros(1250), np.linspace(0, 1, 1250))["k"] == 62
+    assert precision_en_top(np.zeros(5000), np.linspace(0, 1, 5000))["k"] == 250
+    assert config.TOP_EVALUACION == 0.05
+
+
+def test_roi_estimado_con_la_formula_del_spec():
+    cargo = np.array([100.0, 50.0, 80.0, 20.0, 30.0, 10.0])
+    r = roi_estimado(Y, P, cargo, fraccion=0.5)
+    # top 3 = clientes 0, 4, 1; churners reales: 0 y 4 → 0,30 × (100 + 30) × 6 = 234; costo 3 × 8 = 24
+    assert r["k"] == 3 and r["costo"] == pytest.approx(24.0)
+    assert r["ingresos_retenidos_estimados"] == pytest.approx(234.0)
+    assert r["roi"] == pytest.approx((234 - 24) / 24)
+
+
+def test_roi_con_parametros_propios():
+    cargo = np.full(6, 10.0)
+    r = roi_estimado(Y, P, cargo, fraccion=0.5, tasa_exito=1.0, costo=1.0)
+    assert r["roi"] == pytest.approx((2 * 10 * 6 - 3) / 3)
+
+
+def test_equidad_precision_por_grupo_y_reparto_del_top():
+    g = np.array(["a", "a", "a", "b", "b", "b"])
+    m = metricas_equidad(Y, P, g, 0.5, fraccion_top=0.5)
+    # a selecciona {0, 1} → precision 1/2 · b selecciona {4} → precision 1
+    assert m["grupos"]["a"]["precision"] == pytest.approx(0.5)
+    assert m["grupos"]["b"]["precision"] == pytest.approx(1.0)
+    # top 3 = {0, 4, 1}: a aporta 2/3 y b 1/3, frente a un peso de 1/2 cada uno
+    assert m["grupos"]["a"]["reparto_top"] == pytest.approx(2 / 3)
+    assert m["grupos"]["b"]["reparto_top"] == pytest.approx(1 / 3)
+    assert m["grupos"]["a"]["peso"] == pytest.approx(0.5)
+
+
+def test_equidad_grupo_sin_seleccionados_no_inventa_precision():
+    g = np.array(["a", "a", "a", "b", "b", "b"])
+    m = metricas_equidad(Y, P, g, 0.8)  # solo el cliente 0 (grupo a) supera 0,8
+    assert m["grupos"]["b"]["precision"] is None
+
+
+def test_umbrales_de_equidad_de_la_decision_d3():
+    assert config.MAX_DIF_RECALL == 0.05 and config.MIN_RATIO_IMPACTO == 0.80

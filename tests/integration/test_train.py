@@ -40,7 +40,8 @@ def test_algoritmo_desconocido_se_rechaza():
 def test_umbral_cumple_recall_minimo_en_train(datos):
     tr, _ = particionar(datos)
     X, y = tr[config.FEATURES], tr[config.TARGET]
-    umbral = train.calibrar_umbral(train.construir_modelo("logreg"), X, y)
+    umbral, regla = train.calibrar_umbral(train.construir_modelo("logreg"), X, y)
+    assert regla == "mayor_precision_con_recall"
     cv = StratifiedKFold(5, shuffle=True, random_state=config.SEED)
     proba = cross_val_predict(train.construir_modelo("logreg"), X, y, cv=cv,
                               method="predict_proba")[:, 1]
@@ -115,3 +116,54 @@ def test_perfil_referencia_tiene_deciles_y_frecuencias(datos):
     assert len(cargo["limites"]) == 9 and len(cargo["frecuencias"]) == 10
     assert sum(cargo["frecuencias"]) == pytest.approx(1.0)
     assert sum(perfil["tipo_plan"]["frecuencias"].values()) == pytest.approx(1.0)
+
+
+# --- 5 criterios, razones y revisión de proxies (T120; FR-018, FR-024, SC-004, SC-010; D1, D3)
+CRITERIOS = {"recall", "precision", "precision_top", "roc_auc", "roi",
+             "equidad_recall", "ratio_impacto_dispar", "tamano_grupos"}
+
+
+def test_card_trae_los_criterios_de_la_constitucion_y_de_equidad(datos):
+    card = train.entrenar(datos, "logreg")["card"]
+    _, te = particionar(datos)
+    assert set(card["criterios_cumplidos"]) == CRITERIOS
+    assert card["metricas_test"]["precision_top"]["k"] == int(len(te) * config.TOP_EVALUACION)
+    assert "roi_estimado" in card["metricas_negocio"]
+    assert "ratio_impacto_dispar" in card["equidad"]
+    assert card["aprobado_para_despliegue"] == all(card["criterios_cumplidos"].values())
+    assert (card["razones_no_aprobado"] == []) == card["aprobado_para_despliegue"]
+
+
+def test_cada_criterio_incumplido_aparece_en_las_razones(datos, monkeypatch):
+    monkeypatch.setattr(config, "MAX_DIF_RECALL", -1.0)
+    monkeypatch.setattr(config, "MIN_RATIO_IMPACTO", 2.0)
+    monkeypatch.setattr(config, "MIN_ROI", 1e9)
+    monkeypatch.setattr(config, "MIN_PRECISION_TOP", 1.1)
+    card = train.entrenar(datos, "logreg")["card"]
+    texto = " | ".join(card["razones_no_aprobado"])
+    for esperado in ("brecha de recall", "impacto dispar", "ROI", "precision en el"):
+        assert esperado in texto, esperado
+    assert card["aprobado_para_despliegue"] is False
+
+
+def test_ratio_de_impacto_bajo_bloquea_la_aprobacion(datos, monkeypatch):
+    monkeypatch.setattr(config, "MIN_RATIO_IMPACTO", 2.0)
+    card = train.entrenar(datos, "logreg")["card"]
+    assert card["criterios_cumplidos"]["ratio_impacto_dispar"] is False
+    assert card["aprobado_para_despliegue"] is False
+
+
+def test_grupo_pequeno_bloquea_la_aprobacion(datos, monkeypatch):
+    monkeypatch.setattr(config, "MIN_GRUPO_AUDITORIA", 10_000)
+    card = train.entrenar(datos, "logreg")["card"]
+    assert card["criterios_cumplidos"]["tamano_grupos"] is False and not card["aprobado_para_despliegue"]
+
+
+def test_revision_de_proxies_compara_con_y_sin_cada_variable(datos):
+    rev = train.entrenar(datos, "logreg")["card"]["revision_proxies"]
+    assert set(rev) == {"sin_metodo_pago", "sin_tipo_plan", "sin_antiguedad_meses"}
+    for nombre, v in rev.items():
+        quitada = nombre.removeprefix("sin_")
+        assert quitada not in v["features"] and config.SENSITIVE_COL not in v["features"]
+        assert set(v["recall_por_grupo"]) == set(config.RANGOS_EDAD)
+        assert {"dif_max_recall", "ratio_impacto_dispar", "recall", "umbral"} <= v.keys()

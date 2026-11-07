@@ -1,0 +1,171 @@
+{
+  "variantes": [
+    {
+      "nombre": "base_logreg",
+      "algoritmo": "logreg",
+      "excluye": [],
+      "features": [
+        "antiguedad_meses",
+        "cargo_mensual",
+        "reclamos_ult_3m",
+        "uso_datos_gb",
+        "tipo_plan",
+        "metodo_pago",
+        "renovo_contrato"
+      ],
+      "umbral": 0.5378574824628634,
+      "regla_umbral": "mayor_precision_con_recall",
+      "recall": 0.7335423197492164,
+      "precision": 0.4926315789473684,
+      "roc_auc": 0.8111613561445037,
+      "dif_max_recall": 0.14687499999999998,
+      "ratio_impacto_dispar": 0.9025157232704403,
+      "recall_por_grupo": {
+        "18-25": 0.796875,
+        "26-40": 0.75,
+        "41-60": 0.6987951807228916,
+        "60+": 0.65
+      }
+    },
+    {
+      "nombre": "sin_metodo_pago",
+      "algoritmo": "logreg",
+      "excluye": [
+        "metodo_pago"
+      ],
+      "features": [
+        "antiguedad_meses",
+        "cargo_mensual",
+        "reclamos_ult_3m",
+        "uso_datos_gb",
+        "tipo_plan",
+        "renovo_contrato"
+      ],
+      "umbral": 0.5328940744202971,
+      "regla_umbral": "mayor_precision_con_recall",
+      "recall": 0.7272727272727273,
+      "precision": 0.48739495798319327,
+      "roc_auc": 0.8092454602695723,
+      "dif_max_recall": 0.14687499999999998,
+      "ratio_impacto_dispar": 0.9061747506019953,
+      "recall_por_grupo": {
+        "18-25": 0.796875,
+        "26-40": 0.75,
+        "41-60": 0.6746987951807228,
+        "60+": 0.65
+      }
+    },
+    {
+      "nombre": "sin_tipo_plan",
+      "algoritmo": "logreg",
+      "excluye": [
+        "tipo_plan"
+      ],
+      "features": [
+        "antiguedad_meses",
+        "cargo_mensual",
+        "reclamos_ult_3m",
+        "uso_datos_gb",
+        "metodo_pago",
+        "renovo_contrato"
+      ],
+      "umbral": 0.5325359780300162,
+      "regla_umbral": "mayor_precision_con_recall",
+      "recall": 0.7366771159874608,
+      "precision": 0.4989384288747346,
+      "roc_auc": 0.8055685564111803,
+      "dif_max_recall": 0.09450301204819278,
+      "ratio_impacto_dispar": 0.8562433675274144,
+      "recall_por_grupo": {
+        "18-25": 0.78125,
+        "26-40": 0.7575757575757576,
+        "41-60": 0.6867469879518072,
+        "60+": 0.7
+      }
+    },
+    {
+      "nombre": "sin_antiguedad_meses",
+      "algoritmo": "logreg",
+      "excluye": [
+        "antiguedad_meses"
+      ],
+      "features": [
+        "cargo_mensual",
+        "reclamos_ult_3m",
+        "uso_datos_gb",
+        "tipo_plan",
+        "metodo_pago",
+        "renovo_contrato"
+      ],
+      "umbral": 0.4944514258460437,
+      "regla_umbral": "mayor_precision_con_recall",
+      "recall": 0.7335423197492164,
+      "precision": 0.4246823956442831,
+      "roc_auc": 0.7606106623477638,
+      "dif_max_recall": 0.07499999999999996,
+      "ratio_impacto_dispar": 0.8496428364016493,
+      "recall_por_grupo": {
+        "18-25": 0.75,
+        "26-40": 0.7348484848484849,
+        "41-60": 0.7469879518072289,
+        "60+": 0.675
+      }
+    },
+    {
+      "nombre": "rf",
+      "algoritmo": "rf",
+      "excluye": [],
+      "features": [
+        "antiguedad_meses",
+        "cargo_mensual",
+        "reclamos_ult_3m",
+        "uso_datos_gb",
+        "tipo_plan",
+        "metodo_pago",
+        "renovo_contrato"
+      ],
+      "umbral": 0.4643248218430176,
+      "regla_umbral": "mayor_precision_con_recall",
+      "recall": 0.7304075235109718,
+      "precision": 0.4623015873015873,
+      "roc_auc": 0.7921000441093777,
+      "dif_max_recall": 0.16249999999999998,
+      "ratio_impacto_dispar": 0.8605794790005317,
+      "recall_por_grupo": {
+        "18-25": 0.8125,
+        "26-40": 0.7196969696969697,
+        "41-60": 0.7228915662650602,
+        "60+": 0.65
+      }
+    }
+  ],
+  "asociacion_con_edad": {
+    "antiguedad_meses": 0.027150268579809848,
+    "cargo_mensual": 0.09439138950721468,
+    "reclamos_ult_3m": 0.036474896116013546,
+    "uso_datos_gb": 0.027724869720397657,
+    "tipo_plan": 0.13368505991667218,
+    "metodo_pago": 0.03428228914195199,
+    "renovo_contrato": 0.039752790561279186
+  },
+  "grupos": {
+    "18-25": {
+      "n": 257,
+      "positivos": 64
+    },
+    "26-40": {
+      "n": 518,
+      "positivos": 132
+    },
+    "41-60": {
+      "n": 342,
+      "positivos": 83
+    },
+    "60+": {
+      "n": 133,
+      "positivos": 40
+    }
+  },
+  "alguna_variante_cumple": false,
+  "conclusion": "Ninguna variante baja la brecha de recall de 0.05: se documenta y no se fuerza."
+}

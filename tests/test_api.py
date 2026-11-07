@@ -13,7 +13,7 @@ def test_caso_feliz_devuelve_la_prediccion_completa(client, cliente_valido):
     r = client.post("/predict", json=cliente_valido)
     assert r.status_code == 200
     d = r.json()
-    assert set(d) == {"probabilidad_churn", "nivel_riesgo", "recomendacion",
+    assert set(d) - {"alerta_equidad"} == {"probabilidad_churn", "nivel_riesgo", "recomendacion",
                       "version_modelo", "aviso_uso_responsable"}
     assert 0 <= d["probabilidad_churn"] <= 1
     assert d["nivel_riesgo"] in {"alto", "medio", "bajo"}
@@ -64,5 +64,5 @@ def test_health_no_sano_sin_modelo(client_sin_modelo):
     r = client_sin_modelo.get("/health")
     assert r.status_code == 503
     assert r.json() == {"estado": "no_sano", "modelo_cargado": False, "version_modelo": None,
-                        "aprobado_para_despliegue": None, "error": "Modelo no disponible"}
+                        "aprobado_para_despliegue": None, "alertas": [], "error": "Modelo no disponible"}
     assert ".joblib" not in r.text

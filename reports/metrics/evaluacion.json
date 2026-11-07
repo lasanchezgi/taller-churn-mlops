@@ -1,6 +1,7 @@
 {
   "algoritmo": "logreg",
   "umbral": 0.5378574824628634,
+  "regla_umbral": "mayor_precision_con_recall",
   "metricas_test": {
     "roc_auc": 0.8111613561445037,
     "precision": 0.4926315789473684,
@@ -11,6 +12,10 @@
       "fp": 241,
       "fn": 85,
       "tp": 234
+    },
+    "precision_top": {
+      "k": 62,
+      "precision": 0.7580645161290323
     }
   },
   "metricas_negocio": {
@@ -19,29 +24,47 @@
     "ingresos_6_meses_en_riesgo": 155561.34000000003,
     "max_contactos": 250,
     "clientes_priorizados": 250,
-    "costo_campana": 2000.0
+    "costo_campana": 2000.0,
+    "roi_estimado": 9.333596774193548,
+    "roi_detalle": {
+      "k": 62,
+      "costo": 496.0,
+      "ingresos_retenidos_estimados": 5125.464
+    }
   },
   "equidad": {
     "grupos": {
       "18-25": {
         "n": 257,
+        "peso": 0.2056,
         "tasa_seleccion": 0.3657587548638132,
-        "recall": 0.796875
+        "recall": 0.796875,
+        "precision": 0.5425531914893617,
+        "reparto_top": 0.12903225806451613
       },
       "26-40": {
         "n": 518,
+        "peso": 0.4144,
         "tasa_seleccion": 0.39575289575289574,
-        "recall": 0.75
+        "recall": 0.75,
+        "precision": 0.48292682926829267,
+        "reparto_top": 0.45161290322580644
       },
       "41-60": {
         "n": 342,
+        "peso": 0.2736,
         "tasa_seleccion": 0.35964912280701755,
-        "recall": 0.6987951807228916
+        "recall": 0.6987951807228916,
+        "precision": 0.4715447154471545,
+        "reparto_top": 0.3064516129032258
       },
       "60+": {
         "n": 133,
+        "peso": 0.1064,
         "tasa_seleccion": 0.39849624060150374,
-        "recall": 0.65
+        "recall": 0.65,
+        "precision": 0.49056603773584906,
+        "reparto_top": 0.11290322580645161
       }
     },
     "ratio_impacto_dispar": 0.9025157232704403,
@@ -50,8 +73,14 @@
   "criterios_cumplidos": {
     "recall": true,
     "precision": true,
+    "precision_top": true,
     "roc_auc": true,
+    "roi": true,
     "equidad_recall": false,
+    "ratio_impacto_dispar": true,
     "tamano_grupos": true
-  }
+  },
+  "razones_no_aprobado": [
+    "brecha de recall entre grupos de edad 0.147 > 0.05 (18-25: 0.797; 60+: 0.650)"
+  ]
 }

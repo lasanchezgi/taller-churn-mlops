@@ -41,6 +41,7 @@ class Prediccion(BaseModel):
     recomendacion: str
     version_modelo: str
     aviso_uso_responsable: str
+    alerta_equidad: str | None = None  # solo mientras el modelo no esté aprobado (FR-026)
 
 
 class Lote(BaseModel):
@@ -102,6 +103,7 @@ class EstadoServicio(BaseModel):
     modelo_cargado: bool
     version_modelo: str | None
     aprobado_para_despliegue: bool | None
+    alertas: list[str] = Field(default_factory=list)  # razones de no aprobación (FR-028)
     error: str | None
 
 
@@ -178,7 +180,13 @@ async def error_interno(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"error": "Error interno"})
 
 
-@app.post("/predict", response_model=Prediccion)
+def _alerta(card: dict) -> dict:
+    """{"alerta_equidad": texto} si el modelo no está aprobado; vacío si lo está."""
+    a = predict.alerta_equidad(card)
+    return {"alerta_equidad": a} if a else {}
+
+
+@app.post("/predict", response_model=Prediccion, response_model_exclude_unset=True)
 def predecir(cliente: Cliente) -> Prediccion:
     """Probabilidad de churn en los 60 días siguientes al corte, con nivel y recomendación."""
     inicio = time.perf_counter()
@@ -186,10 +194,11 @@ def predecir(cliente: Cliente) -> Prediccion:
     app.state.metricas.registrar_prediccion(
         res["probabilidad_churn"], res["nivel_riesgo"], cliente.cargo_mensual,
         (time.perf_counter() - inicio) * 1000)
-    return Prediccion(**res, aviso_uso_responsable=config.AVISO_USO_RESPONSABLE)
+    return Prediccion(**res, aviso_uso_responsable=config.AVISO_USO_RESPONSABLE,
+                      **_alerta(app.state.modelo["card"]))
 
 
-@app.post("/predict/lote", response_model=RespuestaLote)
+@app.post("/predict/lote", response_model=RespuestaLote, response_model_exclude_unset=True)
 def predecir_lote(request: Request, lote: Lote) -> dict:
     """Una predicción por cliente, en el mismo orden, más el resumen de riesgo (FR-009, FR-010)."""
     inicio = time.perf_counter()
@@ -204,7 +213,8 @@ def predecir_lote(request: Request, lote: Lote) -> dict:
     if resumen:
         campana.guardar_ultimo_lote(resumen)
     return {
-        "predicciones": [{**p, "aviso_uso_responsable": config.AVISO_USO_RESPONSABLE} for p in preds],
+        "predicciones": [{**p, "aviso_uso_responsable": config.AVISO_USO_RESPONSABLE,
+                          **_alerta(request.app.state.modelo["card"])} for p in preds],
         "resumen": resumen,
         "mensaje_resumen": None if resumen else
         f"Lote demasiado pequeño para resumir (mínimo {config.MIN_LOTE_RESUMEN} clientes)",
@@ -260,11 +270,12 @@ def salud(request: Request):
     modelo = request.app.state.modelo
     if modelo is None:
         estado = EstadoServicio(estado="no_sano", modelo_cargado=False, version_modelo=None,
-                                aprobado_para_despliegue=None, error="Modelo no disponible")
+                                aprobado_para_despliegue=None, alertas=[], error="Modelo no disponible")
         return JSONResponse(status_code=503, content=estado.model_dump())
     card = modelo["card"]
     return EstadoServicio(estado="sano", modelo_cargado=True, version_modelo=card["version"],
-                          aprobado_para_despliegue=card.get("aprobado_para_despliegue"), error=None)
+                          aprobado_para_despliegue=card.get("aprobado_para_despliegue"),
+                          alertas=predict.razones_no_aprobado(card), error=None)
 
 
 @app.get("/metrics")

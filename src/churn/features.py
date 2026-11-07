@@ -65,12 +65,17 @@ def particionar(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     )
 
 
-def construir_preprocesador() -> ColumnTransformer:
-    """Escala las numéricas y codifica las categóricas; descarta el resto (incluida la edad)."""
+def construir_preprocesador(excluir: tuple = ()) -> ColumnTransformer:
+    """Escala las numéricas y codifica las categóricas; descarta el resto (incluida la edad).
+
+    `excluir` quita features solo para la revisión de proxies (FR-024); por defecto usa todas.
+    """
+    num = [c for c in config.NUMERIC_FEATURES if c not in excluir]
+    cat = [c for c in config.CATEGORICAL_FEATURES if c not in excluir]
     return ColumnTransformer(
         [
-            ("num", StandardScaler(), config.NUMERIC_FEATURES),
-            ("cat", OneHotEncoder(handle_unknown="ignore"), config.CATEGORICAL_FEATURES),
+            ("num", StandardScaler(), num),
+            ("cat", OneHotEncoder(handle_unknown="ignore"), cat),
         ],
         remainder="drop",
     )

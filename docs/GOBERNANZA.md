@@ -28,6 +28,12 @@ Reglas:
 - La aprobación se registra en el campo `aprobacion` del model card (`aprobado_por` y `fecha`).
   Mientras sean `null`, el modelo **no está aprobado**.
 - Quien entrena no aprueba su propio modelo.
+- **Un modelo no aprobado se sigue sirviendo (D2)**, porque el servicio es una herramienta de apoyo con revisión
+  humana. Mientras `aprobado_para_despliegue` sea `false`: `/health` mantiene `estado` = `sano` (salud
+  operativa) y agrega `aprobado_para_despliegue=false` y `alertas` con las razones; cada respuesta de `/predict`
+  y `/predict/lote` trae `alerta_equidad` además del aviso de revisión humana. La promoción es **manual**:
+  el dueño del modelo la registra en `aprobacion` después de revisar las razones; ningún criterio se relaja
+  para que el modelo «pase».
 
 ## 2. Condiciones para pasar a producción
 
@@ -35,8 +41,8 @@ Todas deben cumplirse (ASUM-DM §8, constitución VI):
 
 | # | Condición | Cómo se comprueba |
 |---|---|---|
-| 1 | Recall ≥ 0,70, precision ≥ 0,40, ROC-AUC ≥ 0,75 en el conjunto de prueba | `criterios_cumplidos` en el model card |
-| 2 | Diferencia de recall entre grupos de edad ≤ 0,05, con grupos de al menos 100 clientes | `equidad_recall` y `tamano_grupos` |
+| 1 | Los 5 criterios de la constitución I en el conjunto de prueba: recall ≥ 0,70, precision ≥ 0,40, precision en el 5 % de mayor riesgo ≥ 0,40, ROC-AUC ≥ 0,75 y ROI estimado ≥ 3 | `recall`, `precision`, `precision_top`, `roc_auc` y `roi` en `criterios_cumplidos` |
+| 2 | Equidad (D3): diferencia de recall entre grupos de edad ≤ 0,05, ratio de impacto dispar ≥ 0,80 y grupos de al menos 100 clientes | `equidad_recall`, `ratio_impacto_dispar` y `tamano_grupos`; las razones quedan en `razones_no_aprobado` |
 | 3 | `uv run pytest` en verde | salida guardada como evidencia (sección 3) |
 | 4 | Model card completo: versión, métricas, huella (hash) y fecha | `models/model_card.json` |
 | 5 | ASUM-DM revisado por pares | acta o comentario de revisión |
@@ -50,6 +56,7 @@ Si falla cualquiera, la versión no se despliega y se documenta el motivo.
 |---|---|---|---|
 | Model card | `models/model_card.json` (copia dentro de `models/churn_model.joblib`) | `python -m churn.train` | versión, semilla, huella del dataset, umbral, métricas, equidad, perfil de referencia, aprobación |
 | Evaluación | `reports/metrics/evaluacion.json` | `python -m churn.train` | métricas técnicas, de negocio y de equidad en test |
+| Mitigación de equidad | `reports/metrics/mitigacion_equidad.json` | `python -m churn.mitigacion` | un intento: regresión logística frente a Random Forest, modelo sin cada variable que podría sustituir a la edad y asociación de cada variable con la edad |
 | Cambio de datos | `reports/metrics/drift.json` | `python -m churn.drift` | PSI por variable y, en simulación, comparación base vs. crisis |
 | Pruebas | `reports/pruebas/pytest-<versión>.txt` | `uv run pytest -v` redirigido a archivo (manual) | que las reglas del sistema se cumplen |
 | Especificación | `specs/002-campana-retencion-monitoreo/spec.md`, `plan.md`, `tasks.md` | Spec Kit | qué se pidió, cómo se diseñó y qué tareas están cerradas |
@@ -139,8 +146,14 @@ reiniciar: la API arranca, `/health` responde 503 y `/predict` responde 503.
 - No se usa para negar servicios, cambiar precios ni tomar decisiones automatizadas. Cada respuesta
   de la API incluye el aviso de uso responsable.
 - **Sesgo:** `rango_edad` nunca es una variable del modelo; solo se usa para auditar el recall por
-  grupo. Hoy el criterio de equidad **no se cumple** (brecha de recall 0,147 frente al máximo de 0,05),
-  por lo que el modelo actual no es candidato a aprobación hasta resolverlo (T089).
+  grupo, con un solo umbral para todos (nunca umbrales por grupo). Hoy el criterio de equidad **no se
+  cumple** (brecha de recall 0,147 frente al máximo de 0,05; grupo `60+` con 40 positivos en la prueba) y
+  el intento de mitigación (`python -m churn.mitigacion`) no logró bajarla de 0,05 con ninguna variante
+  (la mejor, sin `antiguedad_meses`, queda en 0,075). Se documenta y no se fuerza: el modelo se sirve con
+  alerta y no es candidato a aprobación hasta resolverlo.
+- **Regla del umbral (D4, FR-027):** el entrenamiento nunca aborta. Elige el umbral de mayor precision con
+  recall ≥ 0,70 y, si ninguno lo alcanza, el de mayor recall; guarda siempre `criterios_cumplidos`,
+  `razones_no_aprobado` y la `regla_umbral` aplicada.
 - **Privacidad:** los registros guardan el identificador solo codificado con una sal que viene de la
   configuración, nunca en claro. Los datos del taller son sintéticos: no extrapolar resultados a
   clientes reales sin revalidar.
