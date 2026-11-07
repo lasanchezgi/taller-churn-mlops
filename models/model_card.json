@@ -181,8 +181,8 @@
   ],
   "aprobado_para_despliegue": false,
   "aprobacion": {
-    "aprobado_por": null,
-    "fecha": null
+    "aprobado_por": "Laura Sanchez",
+    "fecha": "2026-11-07"
   },
   "perfil_referencia": {
     "antiguedad_meses": {

@@ -335,9 +335,9 @@ make mlflow-ui                                     # = mlflow ui --backend-store
 - **Apoyo, no decisión**: el servicio no debe usarse para negar servicios, cambiar precios ni actuar sobre un cliente
   sin revisión humana. Cada respuesta incluye ese aviso.
 - **Sesgo**: la edad no se usa para predecir y se audita por grupo (`18-25`, `26-40`, `41-60`, `60+`). Hoy la brecha de recall
-  entre grupos es 0,147 (el criterio es ≤ 0,05): el modelo **no está aprobado** (`aprobado_para_despliegue = False`) y la
-  aprobación humana del dueño del modelo sigue vacía en `model_card.json`. Con ~130 clientes en el grupo `60+` la medida es
-  ruidosa; hay que revisarla antes de cualquier uso real.
+  entre grupos es 0,147 (el criterio es ≤ 0,05): la compuerta técnica no pasa (`aprobado_para_despliegue = False`, sin relajar el criterio),
+  pero la dueña del modelo aprobó la v1.0.0 el 2026-11-07 **aceptando la brecha de forma explícita** (ver `docs/GOBERNANZA.md`, D2).
+  Con ~130 clientes en el grupo `60+` la medida es ruidosa; hay que revisarla antes de cualquier uso real.
 - **Privacidad**: `id_cliente` es opcional (hasta 64 caracteres: letras, números, guion y guion bajo), se usa solo para trazabilidad y no se devuelve en `/predict`.
   Los errores no repiten los valores enviados ni muestran trazas. Cada predicción escribe una línea en `logs/predicciones.jsonl` con solo `fecha`, `id_codificado`
   (SHA-256 con sal, 16 caracteres), `probabilidad_churn`, `nivel_riesgo` y `version_modelo`; sin identificador se guarda `null`.
@@ -370,4 +370,4 @@ No se ha construido en este equipo (el demonio de Docker no estaba activo); se v
 
 **Antes de producción** (no cubierto por este taller): autenticación y control de acceso por rol; TLS y un proxy que fije la IP real del cliente para el límite;
 base legal, derechos de acceso, rectificación y supresión sobre los datos (`docs/ETICA.md`); textos definitivos de Retención y Legal; revisión por pares del ASUM-DM;
-aprobación del dueño del modelo (`aprobacion` en el model card); y resolver la brecha de equidad o aceptarla de forma explícita. Detalle en `docs/GOBERNANZA.md`.
+y resolver la brecha de equidad (hoy aceptada de forma explícita por la dueña del modelo, v1.0.0). Detalle en `docs/GOBERNANZA.md`.

@@ -210,7 +210,9 @@ Se **sigue sirviendo como no aprobado**, no se bloquea. Lo que lo hace visible:
 Reglas: ningún criterio se relaja para que el modelo pase; la edad no se usa para predecir ni para umbrales por grupo; la promoción es manual
 (sección 1) y queda en `aprobacion`. Un único intento de mitigación legítimo (`python -m churn.mitigacion`): ninguna variante bajó de 0,05
 (la mejor, 0,075), así que sigue **abierto**: depende de más datos por grupo (el grupo `60+` tiene 40 positivos en la prueba) y de la
-decisión del dueño del modelo. Estado actual: **no aprobado**.
+decisión del dueño del modelo. Estado actual: **no aprobado por la compuerta técnica** (`aprobado_para_despliegue = false`).
+
+**Aceptación explícita de la brecha (2026-11-07).** Laura Sanchez, dueña del modelo, aprobó la versión 1.0.0 (`aprobacion` en el model card) aceptando de forma explícita la brecha de recall de 0,147 entre grupos de edad (18-25: 0,797; 60+: 0,650; criterio ≤ 0,05). Motivos: el grupo `60+` es pequeño y la medida es ruidosa; los datos son sintéticos; la mitigación legítima no bajó de 0,075; y el modelo se usa solo como apoyo con revisión humana. Los criterios **no se relajaron**: la bandera sigue en `false` y la alerta de equidad (FR-026) se sigue mostrando en cada respuesta. Reabrir la decisión al reentrenar o contar con más datos del grupo `60+`.
 
 ### D10 · Meta de −3 pp
 La meta **no cambia** y es del negocio. `business/ASUM-DM.md` §1.4 mide la brecha: la campaña vigente (250 contactos, 2.000 USD al mes) baja la tasa
