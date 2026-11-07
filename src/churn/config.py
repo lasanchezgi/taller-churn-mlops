@@ -15,6 +15,8 @@ MODEL_CARD_PATH = MODELS_DIR / "model_card.json"
 REPORTS_DIR = ROOT / "reports"
 METRICS_PATH = REPORTS_DIR / "metrics" / "evaluacion.json"
 DRIFT_REPORT_PATH = REPORTS_DIR / "metrics" / "drift.json"
+ULTIMO_LOTE_PATH = REPORTS_DIR / "metrics" / "ultimo_lote.json"
+DASHBOARD_PATH = ROOT / "dashboard" / "index.html"
 LOGS_DIR = ROOT / "logs"
 PREDICTIONS_LOG = LOGS_DIR / "predicciones.jsonl"
 
@@ -77,3 +79,21 @@ AVISO_USO_RESPONSABLE = (
 
 # Mínimo de filas para calcular el PSI de un lote (data-model: InformeCambioDatos)
 MIN_FILAS_DRIFT = 100
+
+# Tamaños de lote (FR-009, FR-011; D5): puntuar 1.000; contactos sobre la base mensual completa
+LOTE_MAX = 1000
+CONTACTOS_LOTE_MAX = 5000
+MIN_LOTE_RESUMEN = 20  # FR-010: menos clientes no publica resumen
+
+# Límites de presupuesto y costo por contacto (FR-012)
+PRESUPUESTO_MIN, PRESUPUESTO_MAX = 0.01, 100_000
+COSTO_CONTACTO_MIN, COSTO_CONTACTO_MAX = 0.01, 1000
+
+# Criterios de promoción (constitución I, FR-018; D1) y equidad (SC-010; D3)
+TOP_EVALUACION = 0.05        # k = 5 % del conjunto evaluado (equivale a 250 de 5.000)
+MIN_PRECISION_TOP = 0.40
+MIN_ROI = 3
+MIN_RATIO_IMPACTO = 0.80     # regla de los cuatro quintos
+
+# Límite de solicitudes por IP y minuto (FR-020)
+LIMITE_SOLICITUDES_POR_MINUTO = 60

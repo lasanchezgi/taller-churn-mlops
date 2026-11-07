@@ -57,7 +57,7 @@ posición (índice base 0 y base 1 en el mensaje) y el campo.
 | `version_modelo` | texto | versión usada |
 | `fecha` | fecha-hora | marca de tiempo del cálculo |
 
-Sin identificadores ni datos por cliente (FR-019). Lote sin riesgo alto: conteos e ingresos en cero. Solo se publica si el lote tiene al menos 20 clientes; con menos, se informa "lote demasiado pequeño para resumir" (FR-010).
+`POST /predict/lote` devuelve `resumen` (nulo si el lote tiene menos de 20 clientes) y `mensaje_resumen`. Sin identificadores ni datos por cliente (FR-019). Lote sin riesgo alto: conteos e ingresos en cero. Solo se publica si el lote tiene al menos 20 clientes; con menos, se informa "lote demasiado pequeño para resumir" (FR-010).
 
 ## ListaContacto (salida de `/campana/contactos`)
 
@@ -66,12 +66,13 @@ Sin identificadores ni datos por cliente (FR-019). Lote sin riesgo alto: conteos
 | `presupuesto` | número (USD) | 0,01 ≤ x ≤ 100.000; por defecto 2.000 (FR-012) |
 | `costo_por_contacto` | número (USD) | 0,01 ≤ x ≤ 1.000; por defecto 8 (FR-012) |
 | `max_contactos` | entero | `floor(presupuesto / costo_por_contacto)`; por defecto 250 |
+| `clientes_en_riesgo_alto` | entero | clientes del lote con probabilidad ≥ 0,70 |
 | `contactos` | lista | clientes en riesgo alto con mayor ingreso esperado (probabilidad × `cargo_mensual`), hasta `min(max_contactos, clientes en riesgo alto)`; desempate por posición de entrada |
 | `costo_total` | número (USD) | `len(contactos) × costo_por_contacto` |
 | `aviso_uso_responsable` | texto | fijo (FR-005) |
 
 Cada elemento de `contactos` lleva: `posicion_en_lote`, `probabilidad_churn`, `nivel_riesgo`,
-`recomendacion` y `id_cliente` solo si el cliente lo envió. Si `presupuesto < costo_por_contacto`, la lista queda vacía con mensaje claro.
+`recomendacion`, `ingreso_esperado` y `id_cliente` solo si el cliente lo envió. Si `presupuesto < costo_por_contacto`, la lista queda vacía con mensaje claro.
 
 ## CatalogoRecomendaciones (constante en `recomendaciones.py`)
 

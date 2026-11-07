@@ -39,6 +39,22 @@ def ruta_modelo(tmp_path_factory):
     return ruta
 
 
+@pytest.fixture(autouse=True)
+def _reportes_en_tmp(tmp_path, monkeypatch):
+    """Ningún test escribe en reports/ ni en logs/ reales."""
+    monkeypatch.setattr(config, "ULTIMO_LOTE_PATH", tmp_path / "ultimo_lote.json", raising=False)
+    monkeypatch.setattr(config, "DRIFT_REPORT_PATH", tmp_path / "drift.json")
+
+
+@pytest.fixture
+def clientes_lote():
+    """Fábrica de lotes de clientes válidos (dicts) tomados del generador."""
+    def _f(n, seed=config.SEED + 9, con_id=False):
+        cols = [config.ID_COL, *config.FEATURES] if con_id else list(config.FEATURES)
+        return generar(n, seed=seed)[cols].to_dict(orient="records")
+    return _f
+
+
 @pytest.fixture
 def client(ruta_modelo, monkeypatch):
     monkeypatch.setattr(config, "MODEL_PATH", ruta_modelo)

@@ -59,7 +59,7 @@ def test_lote_pequeno_da_datos_insuficientes(ref):
 def test_simular_crisis_guarda_el_reporte(ruta_modelo, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "MODEL_PATH", ruta_modelo)
     salida = tmp_path / "drift.json"
-    r = drift.simular("crisis", salida)
+    r = drift.simular("crisis", salida, df=generar(1500))  # mismos datos con que se entrenó el modelo de prueba
     g = json.loads(salida.read_text())
     assert g == json.loads(json.dumps(r))
     assert g["estado_general"] == "critico"

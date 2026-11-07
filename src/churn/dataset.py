@@ -32,7 +32,10 @@ def _sigmoide(x: np.ndarray) -> np.ndarray:
 
 def generar(n: int = config.N_CLIENTES, seed: int = config.SEED,
             escenario: str = "base") -> pd.DataFrame:
-    """Devuelve n clientes sintéticos; misma semilla y escenario, mismo resultado."""
+    """Devuelve n clientes sintéticos; misma semilla y escenario, mismo resultado.
+
+    Solo para demos y pruebas: la fuente de entrenamiento es data/raw/churn_telco.csv (D6).
+    """
     if escenario not in ESCENARIOS:
         raise ValueError(f"escenario '{escenario}' no válido; use uno de {list(ESCENARIOS)}")
     rng = np.random.default_rng(seed)
@@ -84,6 +87,14 @@ def generar(n: int = config.N_CLIENTES, seed: int = config.SEED,
         "rango_edad": edad,
         "churn": churn,
     })[COLUMNAS]
+
+
+def aplicar_crisis(df: pd.DataFrame) -> pd.DataFrame:
+    """Copia de df con cargos +30 % y reclamos x2 (T106, FR-014; D6); no toca otras columnas."""
+    out = df.copy()
+    out["cargo_mensual"] = np.clip((out["cargo_mensual"] * 1.3).round(2), *CARGO)
+    out["reclamos_ult_3m"] = np.clip(out["reclamos_ult_3m"] * 2, *RECLAMOS).astype(int)
+    return out
 
 
 def validar(df: pd.DataFrame) -> None:

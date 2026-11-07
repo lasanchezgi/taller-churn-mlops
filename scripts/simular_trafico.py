@@ -11,20 +11,21 @@ import json
 import urllib.error
 import urllib.request
 
-import pandas as pd
-
 from churn import config
-from churn.dataset import generar
+from churn.dataset import aplicar_crisis
+from churn.features import cargar_datos
 
 
-def main() -> None:
+def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--escenario", default="base", choices=["base", "crisis"])
     ap.add_argument("--n", type=int, default=300)
     ap.add_argument("--url", default="http://localhost:8000")
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
 
-    df = pd.read_csv(config.DATA_RAW) if a.escenario == "base" else generar(seed=config.SEED + 1, escenario="crisis")
+    df = cargar_datos(config.DATA_RAW)
+    if a.escenario == "crisis":
+        df = aplicar_crisis(df)  # mismo CSV con cargos y reclamos más altos (D6)
     muestra = df.sample(n=min(a.n, len(df)), random_state=config.SEED)
     clientes = muestra[[config.ID_COL, *config.FEATURES]].to_dict(orient="records")
     # Enviar en lotes de 100 al endpoint batch
@@ -33,6 +34,8 @@ def main() -> None:
         req = urllib.request.Request(f"{a.url}/predict/lote", data=cuerpo, headers={"Content-Type": "application/json"})
         try:
             urllib.request.urlopen(req, timeout=30).read()
+        except urllib.error.HTTPError as exc:  # HTTPError es subclase de URLError: va primero
+            raise SystemExit(f"La API respondió HTTP {exc.code} en {a.url}/predict/lote")
         except urllib.error.URLError as exc:
             raise SystemExit(f"No se pudo conectar a {a.url}: {exc}. ¿Está corriendo uvicorn?")
     print(f"[ok] {len(clientes)} clientes ({a.escenario}) enviados. Abra {a.url}/dashboard")

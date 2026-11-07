@@ -23,51 +23,106 @@
   .estable { background:#d1fadf; color:var(--ok);} .alerta { background:#fef0c7; color:var(--warn);} .critico { background:#fee4e2; color:var(--bad);}
   .muestra_insuficiente { background:var(--line); color:var(--muted); }
   .bar { height:10px; border-radius:5px; background:var(--acc); }
-  .err { color:var(--bad); }
+  .err { color:var(--bad); } .ok { color:var(--ok); } .aviso { color:var(--warn); }
 </style>
 </head>
 <body>
 <header>
   <div><h1>Monitor de Churn · Telco</h1><div class="muted" id="modelo">Cargando…</div></div>
-  <div class="muted">Se actualiza cada 5 s · fuente: <code>/metrics</code></div>
+  <div class="muted">Vista de solo lectura · se actualiza cada 5 s · fuentes: <code>/health</code> y <code>/metrics</code>.
+    Apoya la decisión; no decide. Toda acción sobre un cliente requiere revisión humana.</div>
 </header>
 <main>
+  <div class="card"><div class="k">Estado del servicio</div><div class="v" id="estado">–</div><div class="muted" id="aprobacion"></div></div>
   <div class="card"><div class="k">Predicciones</div><div class="v" id="total">–</div></div>
-  <div class="card"><div class="k">Clientes en riesgo</div><div class="v" id="riesgo">–</div></div>
-  <div class="card"><div class="k">Ingresos/mes en riesgo</div><div class="v" id="ingresos">–</div></div>
-  <div class="card"><div class="k">Clientes priorizados</div><div class="v" id="prior">–</div></div>
-  <div class="card"><div class="k">Latencia p95</div><div class="v" id="lat">–</div></div>
   <div class="card"><div class="k">Errores</div><div class="v" id="errores">–</div></div>
-  <div class="card wide"><div class="k">Distribución de riesgo</div><div id="dist"></div></div>
-  <div class="card wide"><div class="k">Drift (PSI por variable)</div><div id="drift"></div></div>
+  <div class="card"><div class="k">Latencia p95</div><div class="v" id="lat">–</div></div>
+  <div class="card wide"><div class="k">Distribución de riesgo (últimas predicciones)</div><div id="dist"></div></div>
+  <div class="card wide"><div class="k">Último lote puntuado</div><div id="lote"></div></div>
+  <div class="card wide"><div class="k">Cambio de datos (PSI por variable)</div><div id="drift"></div></div>
 </main>
 <script>
+  // Todo texto recibido se inserta con textContent: nunca se interpreta como HTML
+  const $ = id => document.getElementById(id);
   const fmt = n => n == null ? "–" : Number(n).toLocaleString("es-CO", {maximumFractionDigits: 2});
+  const NIVELES = ["estable", "alerta", "critico"];
+  function nodo(tag, texto, clase) {
+    const e = document.createElement(tag);
+    if (texto != null) e.textContent = texto;
+    if (clase) e.className = clase;
+    return e;
+  }
+  function vaciar(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  function mensaje(el, texto) { vaciar(el); el.appendChild(nodo("p", texto, "muted")); }
+
+  function pintarLote(el, r) {
+    if (!r) { mensaje(el, "Aún no se ha puntuado un lote."); return; }
+    vaciar(el);
+    el.appendChild(nodo("p", `${fmt(r.clientes_riesgo_alto)} de ${fmt(r.total_clientes)} clientes en riesgo alto (${fmt(r.porcentaje_riesgo_alto)} %)`));
+    el.appendChild(nodo("p", `Ingresos mensuales en riesgo: $${fmt(r.ingresos_mensuales_en_riesgo)} · a 6 meses: $${fmt(r.ingresos_6_meses_en_riesgo)}`));
+    el.appendChild(nodo("p", `Modelo ${r.version_modelo} · ${r.fecha}`, "muted"));
+  }
+
+  function pintarDrift(el, d) {
+    if (!d) { mensaje(el, "Aún no hay un informe de cambio de datos."); return; }
+    vaciar(el);
+    const nivel = NIVELES.includes(d.estado_general) ? d.estado_general : "muestra_insuficiente";
+    const p = nodo("p", "Estado general: ");
+    p.appendChild(nodo("span", d.estado_general, "pill " + nivel));
+    el.appendChild(p);
+    if (d.recomendacion) el.appendChild(nodo("p", d.recomendacion, "muted"));
+    if (!d.variables || !d.variables.length) return;
+    const tabla = nodo("table");
+    const fila0 = nodo("tr");
+    ["Variable", "PSI", "Nivel"].forEach(h => fila0.appendChild(nodo("th", h)));
+    tabla.appendChild(fila0);
+    d.variables.forEach(v => {
+      const f = nodo("tr");
+      f.appendChild(nodo("td", v.nombre));
+      f.appendChild(nodo("td", fmt(v.psi)));
+      const td = nodo("td");
+      td.appendChild(nodo("span", v.nivel, "pill " + (NIVELES.includes(v.nivel) ? v.nivel : "")));
+      f.appendChild(td);
+      tabla.appendChild(f);
+    });
+    el.appendChild(tabla);
+  }
+
   async function refrescar() {
     try {
-      const r = await fetch("/metrics"); const m = await r.json();
-      const md = m.modelo || {};
-      document.getElementById("modelo").textContent = md.version
-        ? `Modelo v${md.version} (${md.algoritmo}) · umbral ${md.umbral_decision} · AUC offline ${md.metricas_offline.roc_auc}`
+      const h = await (await fetch("/health")).json();
+      const m = await (await fetch("/metrics")).json();
+      const md = m.modelo;
+      $("modelo").textContent = md
+        ? `Modelo v${md.version} · umbral ${fmt(md.umbral)} · ROC-AUC offline ${fmt(md.metricas_offline.roc_auc)}`
         : "Modelo no cargado";
-      const n = m.negocio || {};
-      document.getElementById("total").textContent = fmt(m.predicciones_totales);
-      document.getElementById("riesgo").textContent = n.clientes_en_riesgo == null ? "–" : `${fmt(n.clientes_en_riesgo)} (${fmt(n.pct_en_riesgo*100)}%)`;
-      document.getElementById("ingresos").textContent = n.ingresos_mensuales_en_riesgo == null ? "–" : "$" + fmt(n.ingresos_mensuales_en_riesgo);
-      document.getElementById("prior").textContent = fmt(n.clientes_priorizados);
-      document.getElementById("lat").textContent = m.latencia_p95_ms == null ? "–" : fmt(m.latencia_p95_ms) + " ms";
-      document.getElementById("errores").textContent = fmt(m.errores_totales);
-      const d = m.distribucion_riesgo || {}; const tot = Object.values(d).reduce((a,b)=>a+b,0) || 1;
-      document.getElementById("dist").innerHTML = ["alto","medio","bajo"].map(k =>
-        `<div style="margin:8px 0"><div class="muted">${k}: ${fmt(d[k]||0)}</div><div class="bar" style="width:${(100*(d[k]||0)/tot).toFixed(1)}%"></div></div>`).join("");
-      const dr = m.drift || {};
-      let html = `<p>Estado global: <span class="pill ${dr.estado_global}">${dr.estado_global || "–"}</span></p>`;
-      if (dr.features) {
-        html += "<table><tr><th>Variable</th><th>PSI</th><th>Estado</th></tr>" +
-          Object.entries(dr.features).map(([k,v]) => `<tr><td>${k}</td><td>${v.psi}</td><td><span class="pill ${v.estado}">${v.estado}</span></td></tr>`).join("") + "</table>";
-      } else if (dr.actual != null) { html += `<p class="muted">Se necesitan ${dr.minimo_requerido} predicciones (hay ${dr.actual}).</p>`; }
-      document.getElementById("drift").innerHTML = html;
-    } catch (e) { document.getElementById("modelo").innerHTML = `<span class="err">No se pudo leer /metrics: ${e}</span>`; }
+      $("estado").textContent = h.estado === "sano" ? "Sano" : "No sano";
+      $("estado").className = "v " + (h.estado === "sano" ? "ok" : "err");
+      $("aprobacion").textContent = h.aprobado_para_despliegue === false ? "Modelo no aprobado para despliegue"
+        : h.aprobado_para_despliegue === true ? "Modelo aprobado" : "";
+      $("total").textContent = fmt(m.predicciones_totales);
+      $("errores").textContent = fmt(m.errores_totales);
+      $("lat").textContent = m.latencia_ms && m.latencia_ms.p95 != null ? fmt(m.latencia_ms.p95) + " ms" : "–";
+
+      const d = m.distribucion_riesgo || {};
+      const tot = Object.values(d).reduce((a, b) => a + b, 0);
+      const dist = $("dist");
+      vaciar(dist);
+      if (!tot) mensaje(dist, "Aún no hay predicciones.");
+      else ["alto", "medio", "bajo"].forEach(k => {
+        const bloque = nodo("div"); bloque.style.margin = "8px 0";
+        bloque.appendChild(nodo("div", `${k}: ${fmt(d[k] || 0)}`, "muted"));
+        const barra = nodo("div", null, "bar");
+        barra.style.width = (100 * (d[k] || 0) / tot).toFixed(1) + "%";
+        bloque.appendChild(barra);
+        dist.appendChild(bloque);
+      });
+      pintarLote($("lote"), m.ultimo_resumen);
+      pintarDrift($("drift"), m.ultimo_cambio_datos);
+    } catch (e) {
+      $("modelo").textContent = "No se pudo leer el servicio: " + e;
+      $("modelo").className = "err";
+    }
   }
   refrescar(); setInterval(refrescar, 5000);
 </script>

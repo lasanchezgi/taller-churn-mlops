@@ -291,3 +291,20 @@ Estado de cada hallazgo tras cada etapa de `docs/DECISIONES.md`. ✅ resuelto ·
 | Hallazgos con decisión de nombres (T093) | ✅ | D7: el plan y las tareas ya usan `predict.py` y `Cliente` en `api.py` |
 
 Todos los demás hallazgos siguen ⏳ y se atacan en las etapas 1 a 4.
+
+### Etapa 1 · Bloqueantes: funcionar de punta a punta
+
+| Hallazgo | Estado | Evidencia |
+|---|---|---|
+| B1 · Rutas faltantes | ✅ | `POST /predict/lote`, `POST /campana/contactos`, `POST` y `GET /drift` y `GET /dashboard` en `src/churn/api.py`; `src/churn/campana.py`; `predict.puntuar_lote`. `curl`: `/health`, `/metrics`, `/dashboard`, `/drift` → 200 |
+| B3 · CSV frente a generador / línea base de drift | ✅ | D6 en `drift.simular` (referencia = split de entrenamiento del CSV, base = split de prueba, crisis = `dataset.aplicar_crisis`). `python -m churn.drift --escenario base` → `estable`, PSI máx. 0,017 |
+| B4 · `smoke_test.py` | ✅ | `verificar_api` con el contrato `estado == "sano"`; `smoke_test.py --sin-ia` → «Todo listo para el taller.», código de salida 0 |
+| I7 · Dashboard desalineado y sin escapar | ✅ | `dashboard/index.html` lee `/health` y `/metrics` con las claves reales, usa `textContent` y no `innerHTML`; `tests/unit/test_dashboard_html.py` |
+| M5 · Mensaje engañoso de `simular_trafico.py` | ✅ | `HTTPError` se informa como HTTP; `tests/unit/test_simular_trafico.py` |
+| FR-009, FR-010, FR-011, FR-012, FR-019, SC-003 (lote), SC-007, SC-008, SC-009 | ✅ | `tests/integration/test_api_lote.py`, `test_api_campana.py`, `test_api_drift.py`, `test_api_vista.py`; `tests/unit/test_campana.py` |
+| FR-014 (API) | ✅ | `POST /drift` y `GET /drift`; `tests/integration/test_api_drift.py` |
+
+Notas de la etapa:
+- **Crisis sobre el CSV:** `reclamos_ult_3m` pasa a crítico (PSI 3,27) y `cargo_mensual` a alerta (0,227); estado general crítico (SC-009). Para la prueba pedí «al menos alerta» en `cargo_mensual`; no se tocó ningún criterio del spec.
+- **Límite de la simulación:** la crisis cambia solo las variables, no las etiquetas de churn, así que el recall *sube* (0,734 → 0,868) y la precision baja (0,493 → 0,399); `alerta_recall` no se activa. Mide el efecto de la crisis sobre las entradas del modelo, no un churn nuevo.
+- **Sin cambios:** el modelo sigue sin cumplir la equidad (B5), la API aún no escribe el registro (B2) y no hay límite de solicitudes ni integridad (I5): son las etapas 2 y 3.

@@ -34,6 +34,20 @@ def version(cmd: list[str]) -> str:
         return ""
 
 
+CLIENTE_EJEMPLO = {"antiguedad_meses": 6, "tipo_plan": "prepago", "cargo_mensual": 45.5, "reclamos_ult_3m": 3,
+                   "uso_datos_gb": 2.1, "metodo_pago": "efectivo", "renovo_contrato": "no"}
+
+
+def verificar_api(c) -> list[tuple[str, bool, str]]:
+    """Comprueba /health (contrato del spec: estado == "sano") y /predict; devuelve (nombre, ok, detalle)."""
+    h = c.get("/health").json()
+    p = c.post("/predict", json=CLIENTE_EJEMPLO).json()
+    return [
+        ("API /health", h.get("estado") == "sano", f"estado={h.get('estado')} modelo v{h.get('version_modelo')}"),
+        ("API /predict", "probabilidad_churn" in p, f"p={p.get('probabilidad_churn')} riesgo={p.get('nivel_riesgo')}"),
+    ]
+
+
 def main() -> None:
     sin_ia = "--sin-ia" in sys.argv
     print("== Herramientas ==")
@@ -73,23 +87,23 @@ def main() -> None:
 
     try:
         from churn import config
-        from churn.dataset import generar
+        from churn.features import cargar_datos
         if not config.DATA_RAW.exists():
+            from churn.dataset import generar
             config.DATA_RAW.parent.mkdir(parents=True, exist_ok=True)
             generar().to_csv(config.DATA_RAW, index=False)
-        check("Dataset determinista", True, str(config.DATA_RAW.relative_to(config.ROOT)))
+        check("Dataset", True, str(config.DATA_RAW.relative_to(config.ROOT)))
         if not config.MODEL_PATH.exists():
+            import joblib
             from churn.train import entrenar
-            entrenar()
+            res = entrenar(cargar_datos(config.DATA_RAW))
+            config.MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+            joblib.dump({"pipeline": res["pipeline"], "card": res["card"]}, config.MODEL_PATH)
         from fastapi.testclient import TestClient
         from churn.api import app
         with TestClient(app) as c:
-            h = c.get("/health").json()
-            p = c.post("/predict", json={"antiguedad_meses": 6, "tipo_plan": "prepago", "cargo_mensual": 45.5,
-                                         "reclamos_ult_3m": 3, "uso_datos_gb": 2.1, "metodo_pago": "efectivo",
-                                         "renovo_contrato": "no"}).json()
-        check("API /health", h.get("status") == "ok", f"modelo v{h.get('version_modelo')}")
-        check("API /predict", "probabilidad_churn" in p, f"p={p.get('probabilidad_churn')} riesgo={p.get('nivel_riesgo')}")
+            for nombre, ok, detalle in verificar_api(c):
+                check(nombre, ok, detalle)
     except Exception as exc:
         check("Pipeline de punta a punta", False, repr(exc))
     resumen()

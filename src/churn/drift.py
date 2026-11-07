@@ -1,4 +1,4 @@
-"""Cambio de datos (PSI) y simulación de crisis (T051, T055; FR-014, SC-009).
+"""Cambio de datos (PSI) y simulación de crisis (T051, T055, T108; FR-014, SC-009).
 
 Uso: python -m churn.drift [--escenario base|crisis]
 """
@@ -9,8 +9,9 @@ from datetime import datetime, timezone
 import numpy as np
 
 from churn import config
-from churn.dataset import generar
+from churn.dataset import aplicar_crisis
 from churn.evaluate import metricas_negocio, metricas_tecnicas
+from churn.features import cargar_datos, particionar
 from churn.predict import cargar_modelo
 
 EPS = 1e-4  # evita log(0) con intervalos o categorías vacías
@@ -64,15 +65,17 @@ def _evaluar(modelo: dict, df) -> dict:
             "negocio": metricas_negocio(proba, df["cargo_mensual"], umbral)}
 
 
-def simular(escenario: str = "crisis", ruta_salida=None) -> dict:
-    """Compara el escenario con el base (misma semilla) y guarda reports/metrics/drift.json.
+def simular(escenario: str = "crisis", ruta_salida=None, df=None, modelo=None) -> dict:
+    """Compara el escenario con el base y guarda reports/metrics/drift.json (T108, D6).
 
-    El archivo trae el informe de cambio de datos en la raíz (formato de data-model) y la
-    comparación de métricas bajo "simulacion".
+    Referencia: perfil del split de entrenamiento del CSV (en el model card). Base: split de
+    prueba del mismo CSV. Crisis: aplicar_crisis sobre ese split (solo cambian cargos y reclamos;
+    las etiquetas no cambian, así que las métricas miden el efecto sobre el modelo, no un nuevo churn).
     """
-    modelo = cargar_modelo()
-    base = generar(seed=config.SEED + 1, escenario="base")
-    otro = generar(seed=config.SEED + 1, escenario=escenario)
+    modelo = modelo or cargar_modelo()
+    df = cargar_datos(config.DATA_RAW) if df is None else df
+    _, base = particionar(df)
+    otro = aplicar_crisis(base) if escenario == "crisis" else base
     ref = modelo["card"]["perfil_referencia"]
     eb, eo = _evaluar(modelo, base), _evaluar(modelo, otro)
 
@@ -85,12 +88,12 @@ def simular(escenario: str = "crisis", ruta_salida=None) -> dict:
                                        - eb["negocio"]["ingresos_6_meses_en_riesgo"]),
     }
     reporte = informe(otro, ref)
-    reporte["simulacion"] = {
-        "escenario": escenario, "version_modelo": modelo["card"]["version"],
-        "filas": len(otro), "base": {"informe": informe(base, ref), **eb},
-        escenario: eo, "delta": delta,
-        "alerta_recall": eo["tecnicas"]["recall"] < config.MIN_RECALL,
-    }
+    sim = {"escenario": escenario, "version_modelo": modelo["card"]["version"], "filas": len(otro),
+           "base": {"informe": informe(base, ref), **eb}, "delta": delta,
+           "alerta_recall": eo["tecnicas"]["recall"] < config.MIN_RECALL}
+    if escenario != "base":
+        sim[escenario] = eo
+    reporte["simulacion"] = sim
     ruta = ruta_salida or config.DRIFT_REPORT_PATH
     ruta.parent.mkdir(parents=True, exist_ok=True)
     ruta.write_text(json.dumps(reporte, indent=2, ensure_ascii=False))
@@ -106,7 +109,7 @@ def main(argv=None) -> None:
     print(f"escenario {args.escenario} · estado general: {r['estado_general']} · {r['recomendacion']}")
     for v in r["variables"]:
         print(f"  {v['nombre']:<18} PSI {v['psi']:.3f}  {v['nivel']}")
-    b, o = s["base"], s[args.escenario]
+    b, o = s["base"], s.get(args.escenario, s["base"])
     for k in ("recall", "precision", "roc_auc"):
         print(f"  {k:<10} base {b['tecnicas'][k]:.3f} → {args.escenario} {o['tecnicas'][k]:.3f}")
     print(f"  ingresos 6 meses en riesgo: {b['negocio']['ingresos_6_meses_en_riesgo']:.0f} → "

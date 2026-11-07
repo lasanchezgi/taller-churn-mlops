@@ -1,4 +1,4 @@
-"""Carga del modelo y puntuación de un cliente (T022, FR-001..004, FR-013)."""
+"""Carga del modelo y puntuación de uno o varios clientes (T022, T030; FR-001..004, FR-009, FR-013)."""
 from pathlib import Path
 
 import joblib
@@ -45,3 +45,18 @@ def puntuar(modelo: dict | None, cliente: dict) -> dict:
         "recomendacion": CATALOGO[nivel],
         "version_modelo": modelo["card"]["version"],
     }
+
+
+def puntuar_lote(modelo: dict | None, clientes: list[dict]) -> list[dict]:
+    """Una sola llamada vectorizada; conserva el orden de entrada (FR-009)."""
+    if modelo is None:
+        raise ModeloNoDisponible("modelo no cargado")
+    filas = pd.DataFrame([{c: cl[c] for c in config.FEATURES} for cl in clientes])
+    probas = modelo["pipeline"].predict_proba(filas)[:, 1]
+    version = modelo["card"]["version"]
+    salida = []
+    for p in probas:
+        nivel = nivel_riesgo(float(p))
+        salida.append({"probabilidad_churn": float(p), "nivel_riesgo": nivel,
+                       "recomendacion": CATALOGO[nivel], "version_modelo": version})
+    return salida

@@ -115,14 +115,14 @@ Proyecto único (ver `plan.md`): `src/churn/`, `tests/unit/`, `tests/integration
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T027 [P] [US3] Escribir `tests/integration/test_api_lote.py`: 1.000 clientes válidos devuelven 1.000 resultados en el mismo orden y en menos de 10 s; 1.001 y lote vacío se rechazan con mensaje del límite; un cliente inválido en la posición 3 rechaza todo el lote e indica la posición y el campo (FR-009, SC-003)
-- [ ] T028 [P] [US3] Escribir `tests/unit/test_predict_lote.py`: `predecir_lote` conserva el orden y da la misma probabilidad que la predicción individual del mismo cliente (FR-009, FR-016)
+- [x] T027 [P] [US3] Escribir `tests/integration/test_api_lote.py`: 1.000 clientes válidos devuelven 1.000 resultados en el mismo orden y en menos de 10 s; 1.001 y lote vacío se rechazan con mensaje del límite; un cliente inválido en la posición 3 rechaza todo el lote e indica la posición y el campo (FR-009, SC-003)
+- [x] T028 [P] [US3] Escribir `tests/unit/test_predict_lote.py`: `predecir_lote` conserva el orden y da la misma probabilidad que la predicción individual del mismo cliente (FR-009, FR-016)
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Añadir `Lote` a `src/churn/api.py`: `clientes` "de 1 a 1.000 elementos" usando `config.LOTE_MAX` (FR-009)
-- [ ] T030 [US3] Implementar `predecir_lote` vectorizado en `src/churn/predict.py` (FR-009, SC-003)
-- [ ] T031 [US3] Añadir `POST /predict/lote` en `src/churn/api.py` y la posición del cliente inválido en el detalle del error (FR-009, SC-003)
+- [x] T029 [US3] Añadir `Lote` a `src/churn/api.py`: `clientes` "de 1 a 1.000 elementos" usando `config.LOTE_MAX` (FR-009)
+- [x] T030 [US3] Implementar `predecir_lote` vectorizado en `src/churn/predict.py` (FR-009, SC-003)
+- [x] T031 [US3] Añadir `POST /predict/lote` en `src/churn/api.py` y la posición del cliente inválido en el detalle del error (FR-009, SC-003)
 
 **Checkpoint**: US3 funciona sin resumen; el resumen se añade en US4.
 
@@ -136,14 +136,14 @@ Proyecto único (ver `plan.md`): `src/churn/`, `tests/unit/`, `tests/integration
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T032 [P] [US4] Escribir `tests/unit/test_campana.py` (resumen): total, número y porcentaje en riesgo alto, `ingresos_mensuales_en_riesgo` igual a la suma de `cargo_mensual` de los clientes en riesgo alto, `ingresos_6_meses_en_riesgo` igual a esa suma × 6, ceros si no hay riesgo alto (FR-010, SC-008)
-- [ ] T033 [P] [US4] Escribir `tests/integration/test_api_resumen.py`: `POST /predict/lote` incluye `resumen` que coincide con el cálculo manual y se guarda en `reports/metrics/ultimo_lote.json` sin identificadores ni datos por cliente (FR-010, FR-019, SC-008)
+- [x] T032 [P] [US4] Escribir `tests/unit/test_campana.py` (resumen): total, número y porcentaje en riesgo alto, `ingresos_mensuales_en_riesgo` igual a la suma de `cargo_mensual` de los clientes en riesgo alto, `ingresos_6_meses_en_riesgo` igual a esa suma × 6, ceros si no hay riesgo alto (FR-010, SC-008)
+- [x] T033 [P] [US4] Escribir `tests/integration/test_api_resumen.py`: `POST /predict/lote` incluye `resumen` que coincide con el cálculo manual y se guarda en `reports/metrics/ultimo_lote.json` sin identificadores ni datos por cliente (FR-010, FR-019, SC-008)
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] Implementar en `src/churn/campana.py` el resumen de riesgo y su guardado en `config.ULTIMO_LOTE_PATH` (solo agregados) (FR-010, SC-008)
-- [ ] T035 [P] [US4] Añadir `ResumenRiesgo` a `src/churn/api.py` con los campos de `data-model.md` (FR-010)
-- [ ] T036 [US4] Incluir `resumen` en la respuesta de `POST /predict/lote` en `src/churn/api.py` (tras T034 y T035) (FR-010, SC-008)
+- [x] T034 [US4] Implementar en `src/churn/campana.py` el resumen de riesgo y su guardado en `config.ULTIMO_LOTE_PATH` (solo agregados) (FR-010, SC-008)
+- [x] T035 [P] [US4] Añadir `ResumenRiesgo` a `src/churn/api.py` con los campos de `data-model.md` (FR-010)
+- [x] T036 [US4] Incluir `resumen` en la respuesta de `POST /predict/lote` en `src/churn/api.py` (tras T034 y T035) (FR-010, SC-008)
 
 **Checkpoint**: US4 completa; el último resumen queda disponible para la vista (Fase 10).
 
@@ -157,14 +157,14 @@ Proyecto único (ver `plan.md`): `src/churn/`, `tests/unit/`, `tests/integration
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T037 [P] [US5] Escribir `tests/unit/test_contactos.py`: `max_contactos` = `floor(presupuesto / costo_por_contacto)`; 2.010 USD da 251; solo se eligen clientes en riesgo alto, ordenados por ingreso esperado (probabilidad × `cargo_mensual`) descendente con desempate estable por posición de entrada; devuelve `min(max_contactos, clientes en riesgo alto)`; lote sin riesgo alto devuelve lista vacía con mensaje; presupuesto menor que el costo devuelve lista vacía con mensaje; presupuesto o costo no positivos se rechazan (FR-011, FR-012, SC-007; D5)
-- [ ] T038 [P] [US5] Escribir `tests/integration/test_api_campana.py`: valores por defecto con más de 250 clientes en riesgo alto devuelven 250 contactos y costo de 2.000 USD; con menos clientes en riesgo devuelve solo esos; un lote de 5.000 clientes se acepta y uno de 5.001 se rechaza con 422; `presupuesto` = 0 devuelve 422; la respuesta incluye `aviso_uso_responsable`; cada contacto lleva `posicion_en_lote` y `id_cliente` solo si se envió (FR-005, FR-011, FR-012, SC-007; D5)
+- [x] T037 [P] [US5] Escribir `tests/unit/test_contactos.py`: `max_contactos` = `floor(presupuesto / costo_por_contacto)`; 2.010 USD da 251; solo se eligen clientes en riesgo alto, ordenados por ingreso esperado (probabilidad × `cargo_mensual`) descendente con desempate estable por posición de entrada; devuelve `min(max_contactos, clientes en riesgo alto)`; lote sin riesgo alto devuelve lista vacía con mensaje; presupuesto menor que el costo devuelve lista vacía con mensaje; presupuesto o costo no positivos se rechazan (FR-011, FR-012, SC-007; D5)
+- [x] T038 [P] [US5] Escribir `tests/integration/test_api_campana.py`: valores por defecto con más de 250 clientes en riesgo alto devuelven 250 contactos y costo de 2.000 USD; con menos clientes en riesgo devuelve solo esos; un lote de 5.000 clientes se acepta y uno de 5.001 se rechaza con 422; `presupuesto` = 0 devuelve 422; la respuesta incluye `aviso_uso_responsable`; cada contacto lleva `posicion_en_lote` y `id_cliente` solo si se envió (FR-005, FR-011, FR-012, SC-007; D5)
 
 ### Implementation for User Story 5
 
-- [ ] T039 [US5] Implementar `seleccionar_contactos` en `src/churn/campana.py` (tras T034, mismo archivo) según D5: riesgo alto, orden por ingreso esperado, `min(max_contactos, en riesgo)` (FR-011, FR-012, SC-007)
-- [ ] T040 [P] [US5] Añadir `SolicitudContactos` y `ListaContacto` a `src/churn/api.py`: `presupuesto` y `costo_por_contacto` mayores que 0 con valores por defecto 2000 y 8 (FR-011, FR-012)
-- [ ] T041 [US5] Añadir `POST /campana/contactos` en `src/churn/api.py` (tras T039 y T040); el tope de clientes por solicitud es `config.CONTACTOS_LOTE_MAX` = 5000 (D5, I-2); `/predict/lote` conserva 1000 (FR-011, FR-012, SC-007)
+- [x] T039 [US5] Implementar `seleccionar_contactos` en `src/churn/campana.py` (tras T034, mismo archivo) según D5: riesgo alto, orden por ingreso esperado, `min(max_contactos, en riesgo)` (FR-011, FR-012, SC-007)
+- [x] T040 [P] [US5] Añadir `SolicitudContactos` y `ListaContacto` a `src/churn/api.py`: `presupuesto` y `costo_por_contacto` mayores que 0 con valores por defecto 2000 y 8 (FR-011, FR-012)
+- [x] T041 [US5] Añadir `POST /campana/contactos` en `src/churn/api.py` (tras T039 y T040); el tope de clientes por solicitud es `config.CONTACTOS_LOTE_MAX` = 5000 (D5, I-2); `/predict/lote` conserva 1000 (FR-011, FR-012, SC-007)
 
 **Checkpoint**: US5 completa; los contactos nunca superan el presupuesto.
 
@@ -202,14 +202,14 @@ Proyecto único (ver `plan.md`): `src/churn/`, `tests/unit/`, `tests/integration
 
 - [ ] T048 [P] [US7] Escribir `tests/unit/test_drift.py`: PSI ≈ 0 para un lote igual a la referencia; alerta con PSI ≥ 0,10; crítico con PSI ≥ 0,25; variables categóricas; piso de 1e-4 en proporciones; `estado_general` es el peor de las variables; menos de 100 filas devuelve `datos_insuficientes`; recomienda reentrenar si hay una variable crítica (FR-014, SC-009)
 - [ ] T049 [P] [US7] Escribir `tests/integration/test_train_referencia.py`: tras entrenar, el model card trae `perfil_referencia` con las 7 variables, los límites internos de los deciles (hasta 9; menos si hay repetidos) en las numéricas y la proporción por categoría en las categóricas, calculados solo con el split de entrenamiento (FR-014, SC-009; D6)
-- [ ] T050 [P] [US7] Escribir `tests/integration/test_api_drift.py`: `POST /drift` con datos de entrenamiento da `estable`; con `cargo_mensual` desplazado da `critico`; con 50 clientes da `datos_insuficientes`; el informe se guarda en `reports/metrics/drift.json` (FR-014, SC-009)
+- [x] T050 [P] [US7] Escribir `tests/integration/test_api_drift.py`: `POST /drift` con datos de entrenamiento da `estable`; con `cargo_mensual` desplazado da `critico`; con 50 clientes da `datos_insuficientes`; el informe se guarda en `reports/metrics/drift.json` (FR-014, SC-009)
 
 ### Implementation for User Story 7
 
 - [ ] T051 [US7] Implementar `src/churn/drift.py`: construir la referencia, PSI por variable (Σ (p_nuevo − p_ref) · ln(p_nuevo / p_ref)) y clasificación con `PSI_ALERTA` y `PSI_CRITICO`, `MIN_FILAS_DRIFT` para lotes pequeños (FR-014, SC-009)
 - [ ] T052 [US7] `src/churn/train.py` guarda `perfil_referencia` en el model card (ya lo hace; falta la prueba T049) (FR-014)
 - [ ] T053 [P] [US7] Añadir `InformeCambioDatos` a `src/churn/api.py` con los campos de `data-model.md` (FR-014)
-- [ ] T054 [US7] Añadir `POST /drift` en `src/churn/api.py` y el guardado del informe en `config.DRIFT_REPORT_PATH` (tras T051 y T053) (FR-014, SC-009)
+- [x] T054 [US7] Añadir `POST /drift` en `src/churn/api.py` y el guardado del informe en `config.DRIFT_REPORT_PATH` (tras T051 y T053) (FR-014, SC-009)
 - [ ] T055 [US7] Añadir a `src/churn/drift.py` el punto de entrada `python -m churn.drift --escenario <nombre>` que usan `tareas.py` y el `Makefile`, leyendo lotes de `data/drift/` (FR-014)
 
 **Checkpoint**: US7 completa; las siete historias funcionan por separado.
@@ -224,14 +224,14 @@ Proyecto único (ver `plan.md`): `src/churn/`, `tests/unit/`, `tests/integration
 
 ### Tests ⚠️
 
-- [ ] T056 [P] Escribir `tests/integration/test_api_vista.py`: `GET /metrics` sin lote devuelve `ultimo_resumen` y `ultimo_cambio_datos` nulos; con lote devuelve ambos; ninguna respuesta contiene identificadores; `GET /dashboard` responde HTML (FR-019)
-- [ ] T057 [P] Escribir `tests/unit/test_dashboard_html.py`: `dashboard/index.html` no carga scripts ni estilos externos (sin CDN), no contiene formularios ni peticiones que envíen datos, e inserta el texto recibido escapado (FR-019, FR-017)
+- [x] T056 [P] Escribir `tests/integration/test_api_vista.py`: `GET /metrics` sin lote devuelve `ultimo_resumen` y `ultimo_cambio_datos` nulos; con lote devuelve ambos; ninguna respuesta contiene identificadores; `GET /dashboard` responde HTML (FR-019)
+- [x] T057 [P] Escribir `tests/unit/test_dashboard_html.py`: `dashboard/index.html` no carga scripts ni estilos externos (sin CDN), no contiene formularios ni peticiones que envíen datos, e inserta el texto recibido escapado (FR-019, FR-017)
 
 ### Implementation
 
-- [ ] T058 Añadir `GET /metrics` en `src/churn/api.py`: modelo del model card, último resumen y último informe de cambio de datos, sin identificadores (FR-010, FR-014, FR-019)
-- [ ] T059 Añadir `GET /dashboard` en `src/churn/api.py` sirviendo `dashboard/index.html` (tras T058) (FR-019)
-- [ ] T060 [P] Ajustar `dashboard/index.html` (ya existe): consulta solo `/health` y `/metrics`, JavaScript y CSS en línea, mensaje claro cuando no hay datos, sin acciones (FR-019)
+- [x] T058 Añadir `GET /metrics` en `src/churn/api.py`: modelo del model card, último resumen y último informe de cambio de datos, sin identificadores (FR-010, FR-014, FR-019)
+- [x] T059 Añadir `GET /dashboard` en `src/churn/api.py` sirviendo `dashboard/index.html` (tras T058) (FR-019)
+- [x] T060 [P] Ajustar `dashboard/index.html` (ya existe): consulta solo `/health` y `/metrics`, JavaScript y CSS en línea, mensaje claro cuando no hay datos, sin acciones (FR-019)
 
 **Checkpoint**: la vista funciona con y sin datos.
 
@@ -274,7 +274,7 @@ Proyecto único (ver `plan.md`): `src/churn/`, `tests/unit/`, `tests/integration
 - [ ] T081 [P] Ajustar `src/churn/registro.py`: solo los cinco campos y retención de 90 días (`config.RETENCION_REGISTRO_DIAS`) (FR-023)
 - [ ] T082 [P] Ampliar `src/churn/evaluate.py`: reparto del 5 % de mayor riesgo por grupo de edad, tamaño de cada grupo y regla de no aprobación (diferencia de recall > 0,05, ratio de impacto dispar < 0,80 o grupo con menos de 100 clientes) (FR-018, SC-010)
 - [ ] T083 Ampliar `src/churn/train.py` (tras T082): comparar el modelo con y sin `metodo_pago`, `tipo_plan` y `antiguedad_meses` y guardar `revision_proxies` en el model card (FR-024)
-- [ ] T084 [P] Ajustar `src/churn/campana.py`: el resumen exige al menos 20 clientes (FR-010)
+- [x] T084 [P] Ajustar `src/churn/campana.py`: el resumen exige al menos 20 clientes (FR-010)
 - [ ] T085 Ajustar `src/churn/api.py` (tras T080): patrón y longitud de `id_cliente` (FR-006)
 - [ ] T086 [P] Añadir a `src/churn/recomendaciones.py` la lista de términos prohibidos (ampliable por Legal) y su validación al cargar el catálogo (FR-003, FR-017)
 - [ ] T087 [P] Escribir `docs/AUDITORIA_EQUIDAD.md`: procedimiento trimestral para cruzar predicciones con el grupo de edad del sistema de origen y reportar diferencias, y definición de la revisión humana (aprobación de la lista por un analista, con nombre y fecha en el proceso de campaña) (FR-005, FR-025)
@@ -387,19 +387,19 @@ Task: "tests/unit/test_evaluate.py"  Task: "tests/unit/test_cliente.py"
 
 ### Etapa 1 · Bloqueantes: funcionar de punta a punta (B1, B3, B4)
 
-- [ ] T103 [P] Ampliar `tests/unit/test_config.py`: existen `MIN_PRECISION_TOP` = 0.40, `MIN_ROI` = 3, `MIN_RATIO_IMPACTO` = 0.80, `TOP_EVALUACION` = 0.05, `CONTACTOS_LOTE_MAX` = 5000, `LOTE_MAX` = 1000, `LIMITE_SOLICITUDES_POR_MINUTO` = 60 (FR-009, FR-011, FR-018, FR-020, SC-010; D1, D3, D5)
-- [ ] T104 Añadir esas constantes a `src/churn/config.py` (tras T103) sin tocar las existentes (FR-009, FR-011, FR-018, FR-020)
-- [ ] T105 [P] Escribir `tests/unit/test_dataset_crisis.py`: `aplicar_crisis(df)` sube `cargo_mensual` un 30 % (tope 1.000) y duplica `reclamos_ult_3m` (tope 6) sin modificar las demás columnas ni el original; es determinista (FR-014, FR-016; D6)
-- [ ] T106 Implementar `aplicar_crisis` en `src/churn/dataset.py` (tras T105) y documentar en el docstring de `generar()` que es solo para demos y pruebas (FR-014, FR-016; D6)
-- [ ] T107 [P] Escribir `tests/unit/test_drift_escenarios.py`: el escenario base (split de prueba del CSV) da PSI < 0,10 en las 7 variables y `estado_general` = `estable`; el escenario crisis da `critico` y solo cambian las variables afectadas por la transformación; `simular` no usa `generar` (FR-014, SC-009; D6)
-- [ ] T108 Ajustar `src/churn/drift.py` (`simular` y `main`) para que la referencia sea el `perfil_referencia` del split de entrenamiento, el base sea el split de prueba y la crisis sea `aplicar_crisis` sobre ese mismo split (tras T106 y T107) (FR-014, SC-009; D6)
-- [ ] T109 [P] [US7] Escribir `tests/integration/test_api_drift_get.py`: `GET /drift` devuelve el último informe de `reports/metrics/drift.json`; sin informe responde 404 con `{"error": …}` claro (FR-014)
-- [ ] T110 [US7] Añadir `GET /drift` en `src/churn/api.py` (tras T109, T054) (FR-014)
-- [ ] T111 [P] Escribir `tests/integration/test_smoke_contrato.py`: `scripts/smoke_test.py` expone `verificar_api(cliente)` que pasa con el contrato `/health` = `{"estado": "sano", …}` y falla con `{"status": "ok"}` (D8)
-- [ ] T112 Corregir `scripts/smoke_test.py` (tras T111): usar `estado == "sano"`, extraer `verificar_api`, y llamar `entrenar(cargar_datos(...))` con sus argumentos si falta el modelo (D8; hallazgo B4)
-- [ ] T113 [P] Escribir `tests/unit/test_simular_trafico.py`: con `urlopen` simulado, un `HTTPError` 404 se informa como error HTTP (no como «no se pudo conectar»); la crisis sale de `aplicar_crisis` sobre el CSV (FR-014; D6)
-- [ ] T114 Corregir `scripts/simular_trafico.py` (tras T113, T106): distinguir `HTTPError` de `URLError` y usar `aplicar_crisis` (hallazgo M5; D6)
-- [ ] T115 Cerrar la Etapa 1: `uv run pytest -q`; `python -m churn.drift --escenario base` (sin alerta crítica), `--escenario crisis` y `python scripts/simular_trafico.py --escenario crisis` con la API arriba; actualizar `docs/AUDITORIA.md`; commit
+- [x] T103 [P] Ampliar `tests/unit/test_config.py`: existen `MIN_PRECISION_TOP` = 0.40, `MIN_ROI` = 3, `MIN_RATIO_IMPACTO` = 0.80, `TOP_EVALUACION` = 0.05, `CONTACTOS_LOTE_MAX` = 5000, `LOTE_MAX` = 1000, `LIMITE_SOLICITUDES_POR_MINUTO` = 60 (FR-009, FR-011, FR-018, FR-020, SC-010; D1, D3, D5)
+- [x] T104 Añadir esas constantes a `src/churn/config.py` (tras T103) sin tocar las existentes (FR-009, FR-011, FR-018, FR-020)
+- [x] T105 [P] Escribir `tests/unit/test_dataset_crisis.py`: `aplicar_crisis(df)` sube `cargo_mensual` un 30 % (tope 1.000) y duplica `reclamos_ult_3m` (tope 6) sin modificar las demás columnas ni el original; es determinista (FR-014, FR-016; D6)
+- [x] T106 Implementar `aplicar_crisis` en `src/churn/dataset.py` (tras T105) y documentar en el docstring de `generar()` que es solo para demos y pruebas (FR-014, FR-016; D6)
+- [x] T107 [P] Escribir `tests/unit/test_drift_escenarios.py`: el escenario base (split de prueba del CSV) da PSI < 0,10 en las 7 variables y `estado_general` = `estable`; el escenario crisis da `critico` y solo cambian las variables afectadas por la transformación; `simular` no usa `generar` (FR-014, SC-009; D6)
+- [x] T108 Ajustar `src/churn/drift.py` (`simular` y `main`) para que la referencia sea el `perfil_referencia` del split de entrenamiento, el base sea el split de prueba y la crisis sea `aplicar_crisis` sobre ese mismo split (tras T106 y T107) (FR-014, SC-009; D6)
+- [x] T109 [P] [US7] Escribir `tests/integration/test_api_drift_get.py`: `GET /drift` devuelve el último informe de `reports/metrics/drift.json`; sin informe responde 404 con `{"error": …}` claro (FR-014)
+- [x] T110 [US7] Añadir `GET /drift` en `src/churn/api.py` (tras T109, T054) (FR-014)
+- [x] T111 [P] Escribir `tests/integration/test_smoke_contrato.py`: `scripts/smoke_test.py` expone `verificar_api(cliente)` que pasa con el contrato `/health` = `{"estado": "sano", …}` y falla con `{"status": "ok"}` (D8)
+- [x] T112 Corregir `scripts/smoke_test.py` (tras T111): usar `estado == "sano"`, extraer `verificar_api`, y llamar `entrenar(cargar_datos(...))` con sus argumentos si falta el modelo (D8; hallazgo B4)
+- [x] T113 [P] Escribir `tests/unit/test_simular_trafico.py`: con `urlopen` simulado, un `HTTPError` 404 se informa como error HTTP (no como «no se pudo conectar»); la crisis sale de `aplicar_crisis` sobre el CSV (FR-014; D6)
+- [x] T114 Corregir `scripts/simular_trafico.py` (tras T113, T106): distinguir `HTTPError` de `URLError` y usar `aplicar_crisis` (hallazgo M5; D6)
+- [x] T115 Cerrar la Etapa 1: `uv run pytest -q`; `python -m churn.drift --escenario base` (sin alerta crítica), `--escenario crisis` y `python scripts/simular_trafico.py --escenario crisis` con la API arriba; actualizar `docs/AUDITORIA.md`; commit
 - **Orden de ejecución de la etapa**: T103 → T104 → T105 → T106 → T107 → T108 → T027–T031 (lote) → T032–T036, T074, T084 (resumen) → T037–T041 (contactos) → T048, T050, T053, T054 (POST /drift) → T109 → T110 → T056–T060 (vista) → T111 → T112 → T113 → T114 → T115.
 
 ### Etapa 2 · Gobernanza y equidad (B5, I1–I4, I6; D1–D4)

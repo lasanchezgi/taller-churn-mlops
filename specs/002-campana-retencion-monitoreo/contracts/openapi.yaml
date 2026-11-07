@@ -41,12 +41,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [predicciones, resumen, aviso_uso_responsable]
+                required: [predicciones, resumen, mensaje_resumen, aviso_uso_responsable]
                 properties:
                   predicciones:
                     type: array
                     items: { $ref: '#/components/schemas/Prediccion' }
-                  resumen: { $ref: '#/components/schemas/ResumenRiesgo' }
+                  resumen:
+                    oneOf: [{ $ref: '#/components/schemas/ResumenRiesgo' }, { type: 'null' }]
+                  mensaje_resumen: { type: [string, 'null'], description: Presente si el lote tiene menos de 20 clientes }
                   aviso_uso_responsable: { type: string }
         '422': { $ref: '#/components/responses/ErrorValidacion' }
         '429': { $ref: '#/components/responses/LimiteSolicitudes' }
@@ -242,21 +244,23 @@ components:
         fecha: { type: string, format: date-time }
     ListaContacto:
       type: object
-      required: [presupuesto, costo_por_contacto, max_contactos, contactos, costo_total, aviso_uso_responsable]
+      required: [presupuesto, costo_por_contacto, max_contactos, clientes_en_riesgo_alto, contactos, costo_total, aviso_uso_responsable]
       properties:
         presupuesto: { type: number }
         costo_por_contacto: { type: number }
         max_contactos: { type: integer }
+        clientes_en_riesgo_alto: { type: integer }
         contactos:
           type: array
           items:
             type: object
-            required: [posicion_en_lote, probabilidad_churn, nivel_riesgo, recomendacion]
+            required: [posicion_en_lote, probabilidad_churn, nivel_riesgo, recomendacion, ingreso_esperado]
             properties:
               posicion_en_lote: { type: integer, minimum: 1 }
               probabilidad_churn: { type: number }
               nivel_riesgo: { type: string, enum: [alto, medio, bajo] }
               recomendacion: { type: string }
+              ingreso_esperado: { type: number, description: probabilidad × cargo mensual }
               id_cliente: { type: string }
         costo_total: { type: number }
         mensaje: { type: string, description: Presente si la lista queda vacía }
