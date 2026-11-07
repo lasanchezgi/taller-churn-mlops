@@ -1,5 +1,27 @@
 # Prompts listos para OpenCode (en español)
 
+> **Nota (auditoría, 2026-11-06): IDs de tarea corregidos.** Los IDs `T0xx` de los prompts de abajo no coinciden con `specs/002-campana-retencion-monitoreo/tasks.md`
+> (la 001 fue reemplazada por la 002; la 001 no tiene `tasks.md`). Usa esta tabla; el contenido de los prompts no cambia.
+>
+> | Prompt | ID en el prompt | ID correcto en `tasks.md` | Archivo |
+> |---|---|---|---|
+> | P3.a dataset | T004 | T009 (pruebas T004) | `src/churn/dataset.py` |
+> | P3.b features | T006 | T010 (pruebas T005) | `src/churn/features.py` |
+> | P3.d evaluación | T007 | T011 (pruebas T006); **va antes que P3.c** porque `train.py` la importa | `src/churn/evaluate.py` |
+> | P3.c entrenamiento | T008 | T015 (pruebas T014) | `src/churn/train.py` |
+> | P3.e model card | T008 (repetido) | T015: el model card lo arma `train.py` (no hay `model_card.py`) | `src/churn/train.py` |
+> | P3.f API | T010–T013 | T022, T024, T026 (+ `Cliente` y `Prediccion` en `api.py`, `predict.py`) | `src/churn/api.py`, `predict.py` |
+> | P3.g pruebas | T014 | T018–T020, T025: **las pruebas van antes** que el código (`tasks.md`) | `tests/` |
+> | P3.h README | T024 | T063, T088, T131 | `README.md` |
+> | P4.1 health | T018 | T046; el contrato es `estado: sano/no_sano` (no `status ok/degradado`), más `aprobado_para_despliegue` y `alertas` | `src/churn/api.py` |
+> | P4.2 logging | T019 | T045, T047; el módulo es `registro.py` con `id_codificado` (no `monitoring.py`) y sin `features` en el log | `src/churn/registro.py` |
+> | P4.3 métricas | T020 | T058 | `src/churn/api.py`, `metricas.py` |
+> | P4.4 drift | T021 | T051, T055, T108 | `src/churn/drift.py` |
+> | P4.5 gobernanza | — | `docs/GOBERNANZA.md` (T126) | `docs/GOBERNANZA.md` |
+>
+> Otras correcciones: P3.f no devuelve `id_cliente` en `/predict` (FR-011); las rutas `@specs/001-api-churn/...` deben leerse como `@specs/002-campana-retencion-monitoreo/...`.
+> Spec Kit: en Claude Code los comandos son `/speckit-*` y en OpenCode `/speckit.*`.
+
 **Cómo usarlos**
 - Copia **un** prompt por vez en OpenCode (panel en VS Code o `opencode` en la terminal integrada).
 - Con modelos locales de 3B a 7B funcionan mejor los prompts **cortos y con un solo archivo destino**.

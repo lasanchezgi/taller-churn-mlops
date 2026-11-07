@@ -1,0 +1,36 @@
+# Registro de decisiones
+
+Decisiones del dueño del proyecto tomadas a partir de `docs/AUDITORIA.md` (sección 6). No se reabren; si una
+cambia, se añade una entrada nueva que la reemplace. Fecha de todas: **2026-11-06**.
+
+| ID | Decisión | Justificación | Dónde se aplica |
+|---|---|---|---|
+| D1 | Criterios de promoción: mandan los 5 de la constitución y el ASUM-DM (recall, precision, precision@k, ROC-AUC, ROI ≥ 3). Se elimina la versión de 3. | La constitución es la norma superior y el spec debe trazarse a ella. | spec FR-018, SC-004; plan; tareas T116–T121 |
+| D2 | Un modelo que no pasa equidad se sigue sirviendo, con `aprobado_para_despliegue=false`, razón explícita en el model card y una alerta de equidad en cada respuesta de `/predict` y `/predict/lote`. La promoción es manual (GOBERNANZA.md). Un solo intento de mitigación legítimo: proxies de edad, regresión logística frente a Random Forest, y reporte de la brecha de cada uno; si ninguno baja de 0,05 se documenta y no se fuerza. | Es una herramienta de apoyo con revisión humana; no se relajan criterios ni se usa la edad como predictor ni para umbrales por grupo. | spec FR-026, FR-028; tareas T122–T126 |
+| D3 | Se mantiene la brecha máxima de recall de 0,05 (igualdad de oportunidad) y se añade el ratio de impacto dispar ≥ 0,80 (regla de los cuatro quintos). Ambas son condiciones de aprobación. | `docs/ETICA.md` ya promete el ratio y el código ya lo calcula; faltaba el requisito. | spec SC-010; model card; tareas T116–T121 |
+| D4 | Si ningún umbral cumple todo, el entrenamiento no aborta: elige el de mayor precision con recall ≥ `MIN_RECALL`; si no existe, el de mayor recall. En ambos casos guarda el modelo con `criterios_cumplidos` detallado y `aprobado_para_despliegue=false` cuando no cumpla. | Siempre debe quedar evidencia auditable del intento. | spec FR-027; tareas T118–T119 |
+| D5 | D-09: la selección de contactos se hace sobre el lote que se puntúa, de cualquier tamaño. Se ordena por ingreso esperado en riesgo (probabilidad × `cargo_mensual`) y se toman `min(250, clientes en riesgo)`. D-10: precision@k con k = 5 % del conjunto evaluado (equivale a 250 de 5.000). | Resuelve las decisiones abiertas de `research.md`. | spec FR-011, SC-007; research D-09/D-10; tareas T037–T041, T116–T117 |
+| D6 | Fuente de verdad: `data/raw/churn_telco.csv`. La referencia de drift sale del split de entrenamiento del CSV. El escenario «base» compara contra el split de prueba del CSV y debe dar PSI < 0,10. El escenario «crisis» aplica al CSV una transformación (cargos y reclamos más altos). El generador se conserva solo para demos y pruebas. | Aísla el efecto de la crisis y corrige la línea base de drift (hallazgo B3). | spec FR-014, FR-016, SC-009; research D-05; tareas T105–T108 |
+| D7 | Manda el código: `predict.py` y `Cliente` en `api.py`. Se actualiza el plan, no el código. | El código ya tiene 106 pruebas. | plan; tareas; data-model |
+| D8 | `/health` mantiene el contrato del spec (`estado: sano/no_sano`). «Sano» = modelo cargado e íntegro. Se añaden `aprobado_para_despliegue` y `alertas` (lista) sin cambiar el significado de `estado`. `smoke_test.py` se corrige a este contrato. | Evita romper el contrato; la aprobación es otra dimensión. | spec FR-013, FR-028; tareas T111–T112, T124–T125 |
+| D9 | Spec Kit: no se reinstala nada. El README documenta las dos variantes: `/speckit-*` (Claude Code) y `/speckit.*` (OpenCode). | No cambiar el entorno del taller. | README (T131) |
+| D10 | La meta de −3 pp no cambia. El ASUM-DM gana una sección de brecha: cuánto mueve la tasa la campaña actual y cuántos contactos y cuánto presupuesto harían falta para −3 pp. Queda como riesgo abierto que decide el negocio. | La meta es del negocio, no del equipo técnico. | ASUM-DM (T132); GOBERNANZA (T126) |
+
+## Interpretaciones necesarias para aplicar las decisiones
+
+Las tomé para poder escribir el spec sin ambigüedad. Cada una es reversible; avise si alguna no es lo que quería.
+
+| # | Punto | Interpretación aplicada |
+|---|---|---|
+| I-1 | «Clientes en riesgo» (D5) | Clientes con nivel de riesgo **alto** (probabilidad ≥ 0,70), igual que el resumen de riesgo de FR-010. |
+| I-2 | Tamaño del lote de contactos (D5, «sea del tamaño que sea») | `POST /campana/contactos` acepta hasta `CONTACTOS_LOTE_MAX = 5000` (la base mensual completa, opción (a) de D-09). `POST /predict/lote` conserva su tope de 1.000. |
+| I-3 | Lote que se excede | Se responde **422** con el límite en el mensaje, como ya dice el contrato; el 413 no se usa. |
+| I-4 | `GET /drift` | Se **añade** `GET /drift` (último informe). `POST /drift` se mantiene porque FR-014 y SC-009 exigen comparar un lote enviado. |
+| I-5 | Orden de la campaña frente a precision@k | precision@k mide la calidad del *ranking por probabilidad* del modelo (D-10). La lista de contacto se ordena por ingreso esperado (D5). Son dos usos distintos. |
+| I-6 | ROI en la compuerta (D1) | ROI **estimado offline** = (`TASA_EXITO_CAMPANA` × Σ `cargo_mensual` × 6 de los churners reales entre los k contactados − k × costo) / (k × costo). Es la fórmula del ejemplo del ASUM-DM §1.3; el ROI incremental real se mide con grupo de control en producción. |
+| I-7 | Ratio de impacto dispar | Menor tasa de selección entre grupos de edad / mayor, con el umbral de decisión del modelo. |
+| I-8 | Hash de integridad | El `.joblib` contiene el model card, así que el SHA-256 no puede ir dentro. Va en `models/model_card.json` (`hash_modelo`) y la carga lo compara con el archivo. |
+| I-9 | `model_card.py` (D7) | Se elimina del plan: el model card lo arma `train.py`, que es lo que ya hace el código. Las pruebas van en `test_train.py`. |
+| I-10 | Nombres del model card (D7) | Se conservan los del código (`umbral`, `metricas_test`, `equidad`…) y se enmienda `data-model.md`. |
+| I-11 | Referencia de drift | Permanece en el model card (`perfil_referencia`), calculada solo con el split de entrenamiento del CSV; no se crea `data/processed/referencia_entrenamiento.json`. |
+| I-12 | Constitución | Pasa de 2.0.0 a 2.0.1 (PATCH): se corrige la referencia a `specs/001-api-churn` por la 002 y se elimina el «Sync Impact Report» temporal. Sin cambio de principios. |
