@@ -86,6 +86,8 @@ def test_main_guarda_modelo_con_card_y_json(datos, tmp_path, monkeypatch):
     guardado = joblib.load(config.MODEL_PATH)
     assert set(guardado) == {"pipeline", "card"}
     card = json.loads(config.MODEL_CARD_PATH.read_text())
+    # T128: la huella solo vive en el JSON (el .joblib no puede llevar su propio hash)
+    assert card.pop("hash_modelo") == hashlib.sha256(config.MODEL_PATH.read_bytes()).hexdigest()
     assert card == json.loads(json.dumps(guardado["card"]))
     assert card["hash_dataset"] == hashlib.sha256(csv.read_bytes()).hexdigest()
     assert card["features"] == config.FEATURES and config.SENSITIVE_COL not in card["features"]

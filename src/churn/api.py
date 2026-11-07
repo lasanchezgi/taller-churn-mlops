@@ -1,4 +1,4 @@
-"""API de riesgo de churn (T024, T026, T031, T036, T041, T046, T054, T058, T059, T110; FR-001..013, FR-019, FR-022).
+"""API de riesgo de churn (T024, T026, T031, T036, T041, T046, T047, T054, T058, T059, T078, T110; FR-001..013, FR-015, FR-019, FR-020, FR-022).
 
 Uso: uv run uvicorn churn.api:app --reload  ·  documentación en /docs
 """
@@ -15,7 +15,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from churn import campana, config, drift, predict
+from churn.limitador import Limitador
 from churn.metricas import Metricas
+from churn.registro import Registro
 
 log = logging.getLogger("churn.api")
 
@@ -111,6 +113,8 @@ class EstadoServicio(BaseModel):
 async def lifespan(app: FastAPI):
     """Carga el modelo al iniciar; si falla, el servicio arranca pero responde 503."""
     app.state.metricas = Metricas()
+    app.state.registro = Registro()
+    app.state.limitador = Limitador(config.LIMITE_SOLICITUDES_POR_MINUTO)
     try:
         app.state.modelo = predict.cargar_modelo()
     except predict.ModeloNoDisponible as e:
@@ -159,6 +163,18 @@ def _detalle(err: dict) -> dict:
     return {"campo": ".".join(str(p) for p in loc) or "cuerpo", **d, "mensaje": _mensaje(err)}
 
 
+@app.middleware("http")
+async def limitar_solicitudes(request: Request, call_next):
+    """429 con el formato de error de la API al superar el límite por IP (FR-020)."""
+    ip = request.client.host if request.client else "desconocida"
+    permitido, espera = request.app.state.limitador.permitir(ip)
+    if not permitido:
+        request.app.state.metricas.registrar_error()
+        return JSONResponse(status_code=429, headers={"Retry-After": str(espera)},
+                            content={"error": f"Demasiadas solicitudes; reintente en {espera} s"})
+    return await call_next(request)
+
+
 @app.exception_handler(RequestValidationError)
 async def entrada_invalida(request: Request, exc: RequestValidationError):
     request.app.state.metricas.registrar_error()
@@ -191,9 +207,11 @@ def predecir(cliente: Cliente) -> Prediccion:
     """Probabilidad de churn en los 60 días siguientes al corte, con nivel y recomendación."""
     inicio = time.perf_counter()
     res = predict.puntuar(app.state.modelo, cliente.model_dump())
+    ms = (time.perf_counter() - inicio) * 1000
     app.state.metricas.registrar_prediccion(
-        res["probabilidad_churn"], res["nivel_riesgo"], cliente.cargo_mensual,
-        (time.perf_counter() - inicio) * 1000)
+        res["probabilidad_churn"], res["nivel_riesgo"], cliente.cargo_mensual, ms)
+    app.state.registro.registrar(cliente.id_cliente, res["probabilidad_churn"], res["nivel_riesgo"],
+                                 res["version_modelo"])
     return Prediccion(**res, aviso_uso_responsable=config.AVISO_USO_RESPONSABLE,
                       **_alerta(app.state.modelo["card"]))
 
@@ -208,6 +226,8 @@ def predecir_lote(request: Request, lote: Lote) -> dict:
     for p, c in zip(preds, clientes):
         request.app.state.metricas.registrar_prediccion(
             p["probabilidad_churn"], p["nivel_riesgo"], c["cargo_mensual"], ms)
+        request.app.state.registro.registrar(c["id_cliente"], p["probabilidad_churn"], p["nivel_riesgo"],
+                                             p["version_modelo"])
     cargos = [c["cargo_mensual"] for c in clientes]
     resumen = campana.resumir_lote(preds, cargos, preds[0]["version_modelo"])
     if resumen:
@@ -227,6 +247,9 @@ def elegir_contactos(request: Request, solicitud: SolicitudContactos) -> dict:
     """Lista de contacto sobre el lote puntuado: riesgo alto por ingreso esperado (FR-011, FR-012; D5)."""
     clientes = [c.model_dump() for c in solicitud.clientes]
     preds = predict.puntuar_lote(request.app.state.modelo, clientes)
+    for p, c in zip(preds, clientes):
+        request.app.state.registro.registrar(c["id_cliente"], p["probabilidad_churn"], p["nivel_riesgo"],
+                                             p["version_modelo"])
     lista = campana.seleccionar_contactos(
         preds, [c["cargo_mensual"] for c in clientes], [c["id_cliente"] for c in clientes],
         solicitud.presupuesto, solicitud.costo_por_contacto)

@@ -1,11 +1,10 @@
 """Fixtures compartidas (T016): modelo pequeño en carpeta temporal y cliente de prueba."""
-import joblib
 import pytest
 from fastapi.testclient import TestClient
 
 from churn import config
 from churn.dataset import generar
-from churn.train import entrenar
+from churn.train import entrenar, guardar_modelo
 
 
 @pytest.fixture
@@ -35,7 +34,7 @@ def cliente_fiel(cliente_valido):
 def ruta_modelo(tmp_path_factory):
     res = entrenar(generar(1500), "logreg")
     ruta = tmp_path_factory.mktemp("modelo") / "churn_model.joblib"
-    joblib.dump({"pipeline": res["pipeline"], "card": res["card"]}, ruta)
+    guardar_modelo(res, ruta, ruta.parent / "model_card.json")  # con hash_modelo (FR-021)
     return ruta
 
 
@@ -44,6 +43,7 @@ def _reportes_en_tmp(tmp_path, monkeypatch):
     """Ningún test escribe en reports/ ni en logs/ reales."""
     monkeypatch.setattr(config, "ULTIMO_LOTE_PATH", tmp_path / "ultimo_lote.json", raising=False)
     monkeypatch.setattr(config, "DRIFT_REPORT_PATH", tmp_path / "drift.json")
+    monkeypatch.setattr(config, "PREDICTIONS_LOG", tmp_path / "logs" / "predicciones.jsonl")
 
 
 @pytest.fixture

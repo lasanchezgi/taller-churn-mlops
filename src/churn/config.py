@@ -98,3 +98,6 @@ MIN_RATIO_IMPACTO = 0.80     # regla de los cuatro quintos
 
 # Límite de solicitudes por IP y minuto (FR-020)
 LIMITE_SOLICITUDES_POR_MINUTO = 60
+
+# Retención del registro de predicciones en días (FR-023)
+RETENCION_REGISTRO_DIAS = 90

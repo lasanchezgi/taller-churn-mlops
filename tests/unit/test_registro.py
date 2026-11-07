@@ -17,19 +17,19 @@ def _lineas(reg):
 
 def test_el_log_no_contiene_el_id_en_claro(tmp_path):
     reg = _reg(tmp_path)
-    reg.registrar(ID, 0.81, "alto", "1.0.0", 3.2)
+    reg.registrar(ID, 0.81, "alto", "1.0.0")
     assert ID not in reg.ruta.read_text()
 
 
 def test_una_linea_json_por_prediccion_con_los_campos_esperados(tmp_path):
     reg = _reg(tmp_path)
-    reg.registrar(ID, 0.81, "alto", "1.0.0", 3.2)
-    reg.registrar(None, 0.2, "bajo", "1.0.0", 1.0)
+    reg.registrar(ID, 0.81, "alto", "1.0.0")
+    reg.registrar(None, 0.2, "bajo", "1.0.0")
     lineas = _lineas(reg)
     assert len(lineas) == 2
     assert set(lineas[0]) == {"fecha", "id_codificado", "probabilidad_churn", "nivel_riesgo",
-                              "version_modelo", "latencia_ms"}
-    assert lineas[0]["fecha"].endswith("+00:00") and lineas[0]["latencia_ms"] == 3.2
+                              "version_modelo"}
+    assert lineas[0]["fecha"].endswith("+00:00")
 
 
 def test_codigo_es_sha256_truncado_estable_y_distinto_por_id(tmp_path):
@@ -45,7 +45,7 @@ def test_la_sal_cambia_el_codigo(tmp_path):
 
 def test_sin_id_se_registra_null(tmp_path):
     reg = _reg(tmp_path)
-    reg.registrar(None, 0.5, "medio", "1.0.0", 1.0)
+    reg.registrar(None, 0.5, "medio", "1.0.0")
     assert _lineas(reg)[0]["id_codificado"] is None
 
 

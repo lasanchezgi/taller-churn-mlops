@@ -1,4 +1,6 @@
-"""Carga del modelo y puntuación de uno o varios clientes (T022, T030; FR-001..004, FR-009, FR-013)."""
+"""Carga del modelo y puntuación de uno o varios clientes (T022, T030, T079, T129; FR-001..004, FR-009, FR-013, FR-021)."""
+import hmac
+import json
 from pathlib import Path
 
 import joblib
@@ -6,20 +8,38 @@ import pandas as pd
 
 from churn import config
 from churn.recomendaciones import CATALOGO
+from churn.train import hash_archivo
 
 
 class ModeloNoDisponible(RuntimeError):
     """El modelo no está cargado: no se devuelven predicciones (FR-013)."""
 
 
-def cargar_modelo(ruta=None) -> dict:
-    """Lee {"pipeline", "card"}; si falta o no es válido lanza ModeloNoDisponible."""
-    ruta = ruta or config.MODEL_PATH
+def _verificar_huella(ruta: Path, ruta_card: Path) -> None:
+    """Compara el SHA-256 del .joblib con `hash_modelo` del card; sin huella tampoco se sirve (FR-021)."""
+    try:
+        esperado = json.loads(ruta_card.read_text(encoding="utf-8"))["hash_modelo"]
+        real = hash_archivo(ruta)
+    except Exception as e:  # card ausente, sin huella o archivo ilegible
+        raise ModeloNoDisponible("no se pudo verificar la integridad del modelo") from e
+    if not isinstance(esperado, str) or not hmac.compare_digest(real, esperado):
+        raise ModeloNoDisponible("la huella del modelo no coincide con su ficha")
+
+
+def cargar_modelo(ruta=None, ruta_card=None) -> dict:
+    """Lee {"pipeline", "card"} tras verificar la huella; si falla algo lanza ModeloNoDisponible.
+
+    La huella se comprueba ANTES de deserializar: joblib ejecuta código al cargar un archivo alterado.
+    """
+    ruta = Path(ruta or config.MODEL_PATH)
+    # Por defecto el card vive junto al modelo (models/model_card.json)
+    ruta_card = Path(ruta_card) if ruta_card else ruta.parent / config.MODEL_CARD_PATH.name
+    _verificar_huella(ruta, ruta_card)
     try:
         modelo = joblib.load(ruta)
         modelo["pipeline"], modelo["card"]["version"]
-    except Exception as e:  # archivo ausente, corrupto o con otra estructura
-        raise ModeloNoDisponible(f"no se pudo cargar el modelo en {Path(ruta).name}") from e
+    except Exception as e:  # archivo corrupto o con otra estructura
+        raise ModeloNoDisponible(f"no se pudo cargar el modelo en {ruta.name}") from e
     return modelo
 
 

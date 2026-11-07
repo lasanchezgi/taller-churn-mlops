@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "algoritmo": "logreg",
-  "fecha_entrenamiento": "2026-11-07T01:39:45+00:00",
+  "fecha_entrenamiento": "2026-11-07T15:04:48+00:00",
   "semilla": 42,
   "hash_dataset": "9c4562ee38d21972635e23c5ba8aeae98c59b522da642e9cf0ea8b64827597b2",
   "features": [
@@ -301,5 +301,6 @@
         "si": 0.5112
       }
     }
-  }
+  },
+  "hash_modelo": "c2bdf1405d47a3f672097535fce149b7adba2b0b81b0b9b88ba557608d03497f"
 }

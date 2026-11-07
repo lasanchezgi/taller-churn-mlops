@@ -2,13 +2,12 @@
 
 Referencia = split de entrenamiento; base = split de prueba; crisis = aplicar_crisis sobre ese split.
 """
-import joblib
 import pytest
 
 from churn import config, drift
 from churn.features import cargar_datos
 from churn.predict import cargar_modelo
-from churn.train import entrenar
+from churn.train import entrenar, guardar_modelo
 
 
 @pytest.fixture(scope="module")
@@ -16,7 +15,7 @@ def csv_y_modelo(tmp_path_factory):
     df = cargar_datos(config.DATA_RAW)
     res = entrenar(df, "logreg")
     ruta = tmp_path_factory.mktemp("csv") / "m.joblib"
-    joblib.dump({"pipeline": res["pipeline"], "card": res["card"]}, ruta)
+    guardar_modelo(res, ruta, ruta.parent / "model_card.json")
     return df, cargar_modelo(ruta)
 
 

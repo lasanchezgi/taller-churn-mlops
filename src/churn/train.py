@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -87,6 +88,20 @@ def hash_archivo(ruta) -> str:
         for bloque in iter(lambda: f.read(1 << 20), b""):
             h.update(bloque)
     return h.hexdigest()
+
+
+def guardar_modelo(res: dict, ruta_modelo, ruta_card) -> dict:
+    """Guarda el .joblib y el model card con `hash_modelo` (SHA-256 del .joblib; T129, FR-021).
+
+    La huella solo va en el JSON: el .joblib contiene el card y no puede llevar su propio hash.
+    """
+    ruta_modelo, ruta_card = Path(ruta_modelo), Path(ruta_card)
+    ruta_modelo.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump({"pipeline": res["pipeline"], "card": res["card"]}, ruta_modelo)
+    card = {**res["card"], "hash_modelo": hash_archivo(ruta_modelo)}
+    ruta_card.parent.mkdir(parents=True, exist_ok=True)
+    ruta_card.write_text(json.dumps(card, indent=2, ensure_ascii=False))
+    return card
 
 
 def evaluar_variante(tr, te, algoritmo: str, excluir: tuple = ()) -> dict:
@@ -201,10 +216,7 @@ def main(argv=None) -> None:
     res = entrenar(cargar_datos(config.DATA_RAW), args.algoritmo, hash_archivo(config.DATA_RAW))
     card = res["card"]
 
-    config.MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump({"pipeline": res["pipeline"], "card": card}, config.MODEL_PATH)
-    config.MODEL_CARD_PATH.parent.mkdir(parents=True, exist_ok=True)
-    config.MODEL_CARD_PATH.write_text(json.dumps(card, indent=2, ensure_ascii=False))
+    card = guardar_modelo(res, config.MODEL_PATH, config.MODEL_CARD_PATH)
 
     metricas = {k: card[k] for k in ("algoritmo", "umbral", "regla_umbral", "metricas_test", "metricas_negocio",
                                      "equidad", "criterios_cumplidos", "razones_no_aprobado")}
