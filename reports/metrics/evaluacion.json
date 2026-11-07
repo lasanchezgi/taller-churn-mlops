@@ -1,0 +1,57 @@
+{
+  "algoritmo": "logreg",
+  "umbral": 0.5378574824628634,
+  "metricas_test": {
+    "roc_auc": 0.8111613561445037,
+    "precision": 0.4926315789473684,
+    "recall": 0.7335423197492164,
+    "f1": 0.5894206549118388,
+    "matriz_confusion": {
+      "tn": 690,
+      "fp": 241,
+      "fn": 85,
+      "tp": 234
+    }
+  },
+  "metricas_negocio": {
+    "clientes_en_riesgo": 475,
+    "ingresos_mensuales_en_riesgo": 25926.890000000003,
+    "ingresos_6_meses_en_riesgo": 155561.34000000003,
+    "max_contactos": 250,
+    "clientes_priorizados": 250,
+    "costo_campana": 2000.0
+  },
+  "equidad": {
+    "grupos": {
+      "18-25": {
+        "n": 257,
+        "tasa_seleccion": 0.3657587548638132,
+        "recall": 0.796875
+      },
+      "26-40": {
+        "n": 518,
+        "tasa_seleccion": 0.39575289575289574,
+        "recall": 0.75
+      },
+      "41-60": {
+        "n": 342,
+        "tasa_seleccion": 0.35964912280701755,
+        "recall": 0.6987951807228916
+      },
+      "60+": {
+        "n": 133,
+        "tasa_seleccion": 0.39849624060150374,
+        "recall": 0.65
+      }
+    },
+    "ratio_impacto_dispar": 0.9025157232704403,
+    "dif_max_recall": 0.14687499999999998
+  },
+  "criterios_cumplidos": {
+    "recall": true,
+    "precision": true,
+    "roc_auc": true,
+    "equidad_recall": false,
+    "tamano_grupos": true
+  }
+}

@@ -63,3 +63,17 @@ PRESUPUESTO_CAMPANA = 2000.0  # presupuesto mensual (USD)
 # Monitoreo de drift (Population Stability Index)
 PSI_ALERTA = 0.10
 PSI_CRITICO = 0.25
+
+# Equidad (SC-010): brecha máxima de recall entre grupos de edad y tamaño mínimo de grupo
+MAX_DIF_RECALL = 0.05
+MIN_GRUPO_AUDITORIA = 100
+
+# Respuestas del servicio (FR-002, FR-005)
+UMBRAL_RIESGO_MEDIO = 0.50
+AVISO_USO_RESPONSABLE = (
+    "Apoyo a la decisión: este resultado no es una decisión. "
+    "Requiere revisión humana antes de actuar sobre el cliente."
+)
+
+# Mínimo de filas para calcular el PSI de un lote (data-model: InformeCambioDatos)
+MIN_FILAS_DRIFT = 100

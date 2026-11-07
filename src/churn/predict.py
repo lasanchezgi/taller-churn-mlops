@@ -1,0 +1,47 @@
+"""Carga del modelo y puntuación de un cliente (T022, FR-001..004, FR-013)."""
+from pathlib import Path
+
+import joblib
+import pandas as pd
+
+from churn import config
+from churn.recomendaciones import CATALOGO
+
+
+class ModeloNoDisponible(RuntimeError):
+    """El modelo no está cargado: no se devuelven predicciones (FR-013)."""
+
+
+def cargar_modelo(ruta=None) -> dict:
+    """Lee {"pipeline", "card"}; si falta o no es válido lanza ModeloNoDisponible."""
+    ruta = ruta or config.MODEL_PATH
+    try:
+        modelo = joblib.load(ruta)
+        modelo["pipeline"], modelo["card"]["version"]
+    except Exception as e:  # archivo ausente, corrupto o con otra estructura
+        raise ModeloNoDisponible(f"no se pudo cargar el modelo en {Path(ruta).name}") from e
+    return modelo
+
+
+def nivel_riesgo(probabilidad: float) -> str:
+    """alto >= 0,70 · medio >= 0,50 y < 0,70 · bajo < 0,50 (FR-002)."""
+    if probabilidad >= config.UMBRAL_RIESGO_ALTO:
+        return "alto"
+    if probabilidad >= config.UMBRAL_RIESGO_MEDIO:
+        return "medio"
+    return "bajo"
+
+
+def puntuar(modelo: dict | None, cliente: dict) -> dict:
+    """Probabilidad, nivel, recomendación y versión; solo usa config.FEATURES."""
+    if modelo is None:
+        raise ModeloNoDisponible("modelo no cargado")
+    fila = pd.DataFrame([{c: cliente[c] for c in config.FEATURES}])
+    prob = float(modelo["pipeline"].predict_proba(fila)[0, 1])
+    nivel = nivel_riesgo(prob)
+    return {
+        "probabilidad_churn": prob,
+        "nivel_riesgo": nivel,
+        "recomendacion": CATALOGO[nivel],
+        "version_modelo": modelo["card"]["version"],
+    }

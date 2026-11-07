@@ -1,0 +1,141 @@
+{
+  "variables": [
+    {
+      "nombre": "antiguedad_meses",
+      "psi": 0.1395,
+      "nivel": "alerta"
+    },
+    {
+      "nombre": "cargo_mensual",
+      "psi": 0.5323,
+      "nivel": "critico"
+    },
+    {
+      "nombre": "reclamos_ult_3m",
+      "psi": 0.1308,
+      "nivel": "alerta"
+    },
+    {
+      "nombre": "uso_datos_gb",
+      "psi": 0.2579,
+      "nivel": "critico"
+    },
+    {
+      "nombre": "tipo_plan",
+      "psi": 0.0266,
+      "nivel": "estable"
+    },
+    {
+      "nombre": "metodo_pago",
+      "psi": 0.0156,
+      "nivel": "estable"
+    },
+    {
+      "nombre": "renovo_contrato",
+      "psi": 0.0003,
+      "nivel": "estable"
+    }
+  ],
+  "estado_general": "critico",
+  "fecha": "2026-11-07T01:09:52+00:00",
+  "recomendacion": "evaluar reentrenamiento",
+  "simulacion": {
+    "escenario": "crisis",
+    "version_modelo": "1.0.0",
+    "filas": 5000,
+    "base": {
+      "informe": {
+        "variables": [
+          {
+            "nombre": "antiguedad_meses",
+            "psi": 0.1395,
+            "nivel": "alerta"
+          },
+          {
+            "nombre": "cargo_mensual",
+            "psi": 0.1671,
+            "nivel": "alerta"
+          },
+          {
+            "nombre": "reclamos_ult_3m",
+            "psi": 0.0647,
+            "nivel": "estable"
+          },
+          {
+            "nombre": "uso_datos_gb",
+            "psi": 0.2696,
+            "nivel": "critico"
+          },
+          {
+            "nombre": "tipo_plan",
+            "psi": 0.0266,
+            "nivel": "estable"
+          },
+          {
+            "nombre": "metodo_pago",
+            "psi": 0.0164,
+            "nivel": "estable"
+          },
+          {
+            "nombre": "renovo_contrato",
+            "psi": 0.0003,
+            "nivel": "estable"
+          }
+        ],
+        "estado_general": "critico",
+        "fecha": "2026-11-07T01:09:52+00:00",
+        "recomendacion": "evaluar reentrenamiento"
+      },
+      "tecnicas": {
+        "roc_auc": 0.7276912845522909,
+        "precision": 0.4240619416319238,
+        "recall": 0.6018596787827557,
+        "f1": 0.4975541579315164,
+        "matriz_confusion": {
+          "tn": 2850,
+          "fp": 967,
+          "fn": 471,
+          "tp": 712
+        }
+      },
+      "negocio": {
+        "clientes_en_riesgo": 1679,
+        "ingresos_mensuales_en_riesgo": 93001.98000000001,
+        "ingresos_6_meses_en_riesgo": 558011.8800000001,
+        "max_contactos": 250,
+        "clientes_priorizados": 250,
+        "costo_campana": 2000.0
+      }
+    },
+    "crisis": {
+      "tecnicas": {
+        "roc_auc": 0.730244454440456,
+        "precision": 0.45691699604743086,
+        "recall": 0.7353689567430025,
+        "f1": 0.5636274987810824,
+        "matriz_confusion": {
+          "tn": 2054,
+          "fp": 1374,
+          "fn": 416,
+          "tp": 1156
+        }
+      },
+      "negocio": {
+        "clientes_en_riesgo": 2530,
+        "ingresos_mensuales_en_riesgo": 190699.97,
+        "ingresos_6_meses_en_riesgo": 1144199.82,
+        "max_contactos": 250,
+        "clientes_priorizados": 250,
+        "costo_campana": 2000.0
+      }
+    },
+    "delta": {
+      "recall": 0.1335092779602468,
+      "precision": 0.03285505441550707,
+      "roc_auc": 0.002553169888165119,
+      "clientes_en_riesgo": 851,
+      "ingresos_6_meses_en_riesgo": 586187.94
+    },
+    "alerta_recall": false
+  }
+}

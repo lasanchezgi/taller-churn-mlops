@@ -1,0 +1,193 @@
+{
+  "version": "1.0.0",
+  "algoritmo": "logreg",
+  "fecha_entrenamiento": "2026-11-07T01:09:42+00:00",
+  "semilla": 42,
+  "hash_dataset": "9c4562ee38d21972635e23c5ba8aeae98c59b522da642e9cf0ea8b64827597b2",
+  "features": [
+    "antiguedad_meses",
+    "cargo_mensual",
+    "reclamos_ult_3m",
+    "uso_datos_gb",
+    "tipo_plan",
+    "metodo_pago",
+    "renovo_contrato"
+  ],
+  "umbral": 0.5378574824628634,
+  "metricas_test": {
+    "roc_auc": 0.8111613561445037,
+    "precision": 0.4926315789473684,
+    "recall": 0.7335423197492164,
+    "f1": 0.5894206549118388,
+    "matriz_confusion": {
+      "tn": 690,
+      "fp": 241,
+      "fn": 85,
+      "tp": 234
+    }
+  },
+  "metricas_negocio": {
+    "clientes_en_riesgo": 475,
+    "ingresos_mensuales_en_riesgo": 25926.890000000003,
+    "ingresos_6_meses_en_riesgo": 155561.34000000003,
+    "max_contactos": 250,
+    "clientes_priorizados": 250,
+    "costo_campana": 2000.0
+  },
+  "equidad": {
+    "grupos": {
+      "18-25": {
+        "n": 257,
+        "tasa_seleccion": 0.3657587548638132,
+        "recall": 0.796875
+      },
+      "26-40": {
+        "n": 518,
+        "tasa_seleccion": 0.39575289575289574,
+        "recall": 0.75
+      },
+      "41-60": {
+        "n": 342,
+        "tasa_seleccion": 0.35964912280701755,
+        "recall": 0.6987951807228916
+      },
+      "60+": {
+        "n": 133,
+        "tasa_seleccion": 0.39849624060150374,
+        "recall": 0.65
+      }
+    },
+    "ratio_impacto_dispar": 0.9025157232704403,
+    "dif_max_recall": 0.14687499999999998
+  },
+  "criterios_cumplidos": {
+    "recall": true,
+    "precision": true,
+    "roc_auc": true,
+    "equidad_recall": false,
+    "tamano_grupos": true
+  },
+  "aprobado_para_despliegue": false,
+  "aprobacion": {
+    "aprobado_por": null,
+    "fecha": null
+  },
+  "perfil_referencia": {
+    "antiguedad_meses": {
+      "tipo": "numerica",
+      "limites": [
+        7.900000000000034,
+        12.0,
+        16.0,
+        20.0,
+        24.0,
+        29.0,
+        34.0,
+        43.0,
+        55.0
+      ],
+      "frecuencias": [
+        0.1,
+        0.0984,
+        0.1,
+        0.10053333333333334,
+        0.09386666666666667,
+        0.10453333333333334,
+        0.0904,
+        0.11093333333333333,
+        0.09786666666666667,
+        0.10346666666666667
+      ]
+    },
+    "cargo_mensual": {
+      "tipo": "numerica",
+      "limites": [
+        16.22,
+        23.136000000000003,
+        29.675000000000015,
+        37.326,
+        45.605000000000004,
+        52.844,
+        60.5,
+        73.51400000000001,
+        92.794
+      ],
+      "frecuencias": [
+        0.09973333333333333,
+        0.10026666666666667,
+        0.1,
+        0.1,
+        0.1,
+        0.1,
+        0.09946666666666666,
+        0.10053333333333334,
+        0.1,
+        0.1
+      ]
+    },
+    "reclamos_ult_3m": {
+      "tipo": "numerica",
+      "limites": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "frecuencias": [
+        0.0,
+        0.44453333333333334,
+        0.35786666666666667,
+        0.1976
+      ]
+    },
+    "uso_datos_gb": {
+      "tipo": "numerica",
+      "limites": [
+        2.7590000000000003,
+        3.67,
+        4.43,
+        5.19,
+        6.04,
+        7.03,
+        8.32,
+        10.05,
+        13.19
+      ],
+      "frecuencias": [
+        0.1,
+        0.09946666666666666,
+        0.1,
+        0.10026666666666667,
+        0.09973333333333333,
+        0.10026666666666667,
+        0.1,
+        0.1,
+        0.1,
+        0.10026666666666667
+      ]
+    },
+    "tipo_plan": {
+      "tipo": "categorica",
+      "frecuencias": {
+        "pospago_basico": 0.3858666666666667,
+        "pospago_premium": 0.17866666666666667,
+        "prepago": 0.43546666666666667
+      }
+    },
+    "metodo_pago": {
+      "tipo": "categorica",
+      "frecuencias": {
+        "debito_automatico": 0.2581333333333333,
+        "efectivo": 0.20213333333333333,
+        "tarjeta_credito": 0.27226666666666666,
+        "transferencia": 0.2674666666666667
+      }
+    },
+    "renovo_contrato": {
+      "tipo": "categorica",
+      "frecuencias": {
+        "no": 0.4888,
+        "si": 0.5112
+      }
+    }
+  }
+}

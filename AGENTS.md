@@ -4,7 +4,7 @@
 Proyecto de taller: predicción de churn en telecomunicaciones. Fuente de verdad, en este orden:
 1. `business/ASUM-DM.md` (objetivo de negocio, KPIs, criterios de éxito, riesgos).
 2. `.specify/memory/constitution.md` (principios no negociables).
-3. `specs/001-api-churn/spec.md`, `plan.md`, `tasks.md`.
+3. `specs/002-campana-retencion-monitoreo/spec.md`, `plan.md`, `tasks.md` (reemplaza a `specs/001-api-churn`).
 
 ## Reglas
 - Responde y comenta el código **en español**, con comentarios breves.
