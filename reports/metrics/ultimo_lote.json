@@ -1,9 +1,9 @@
 {
   "total_clientes": 100,
-  "clientes_riesgo_alto": 37,
-  "porcentaje_riesgo_alto": 37.0,
-  "ingresos_mensuales_en_riesgo": 2535.05,
-  "ingresos_6_meses_en_riesgo": 15210.300000000001,
+  "clientes_riesgo_alto": 48,
+  "porcentaje_riesgo_alto": 48.0,
+  "ingresos_mensuales_en_riesgo": 3693.7,
+  "ingresos_6_meses_en_riesgo": 22162.199999999997,
   "version_modelo": "1.0.0",
-  "fecha": "2026-11-07T01:33:49+00:00"
+  "fecha": "2026-11-07T15:55:21+00:00"
 }
