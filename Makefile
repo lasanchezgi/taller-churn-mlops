@@ -1,12 +1,12 @@
-# Atajos para macOS/Linux. En Windows use: python tareas.py <tarea>
+# Atajos para macOS/Linux. En Windows use: uv run python tareas.py <tarea>
 .PHONY: datos entrenar entrenar-rf probar api trafico drift smoke todo limpiar
-datos:       ; python tareas.py datos
-entrenar:    ; python tareas.py entrenar
-entrenar-rf: ; python tareas.py entrenar-rf
-probar:      ; python tareas.py probar
-api:         ; python tareas.py api
-trafico:     ; python tareas.py trafico
-drift:       ; python tareas.py drift
-smoke:       ; python tareas.py smoke
-todo:        ; python tareas.py todo
-limpiar:     ; python tareas.py limpiar
+datos:       ; uv run python tareas.py datos
+entrenar:    ; uv run python tareas.py entrenar
+entrenar-rf: ; uv run python tareas.py entrenar-rf
+probar:      ; uv run python tareas.py probar
+api:         ; uv run python tareas.py api
+trafico:     ; uv run python tareas.py trafico
+drift:       ; uv run python tareas.py drift
+smoke:       ; uv run python tareas.py smoke
+todo:        ; uv run python tareas.py todo
+limpiar:     ; uv run python tareas.py limpiar

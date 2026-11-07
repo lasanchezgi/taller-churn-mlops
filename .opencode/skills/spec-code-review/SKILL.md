@@ -10,7 +10,7 @@ metadata:
 # Skill: revisión de código contra la especificación (estilo ECC · code-reviewer)
 
 ## Procedimiento
-1. Lee `specs/001-api-churn/spec.md` (FR-xxx, SC-xxx) y `tasks.md`.
+1. Lee `specs/002-campana-retencion-monitoreo/spec.md` (FR-xxx, SC-xxx) y `tasks.md`.
 2. Para cada requisito, busca evidencia en el código **y** en las pruebas.
 3. Construye la matriz de trazabilidad:
 

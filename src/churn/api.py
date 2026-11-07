@@ -26,15 +26,18 @@ class Cliente(BaseModel):
     """Entrada de un cliente; rechaza campos no previstos (incluida la edad)."""
     model_config = ConfigDict(extra="forbid")
 
-    antiguedad_meses: int = Field(ge=1, le=120, strict=True)
+    antiguedad_meses: int = Field(ge=config.ANTIGUEDAD_RANGO[0], le=config.ANTIGUEDAD_RANGO[1], strict=True)
     tipo_plan: Literal[*config.PLANES]
-    cargo_mensual: float = Field(ge=10, le=1000, strict=True, allow_inf_nan=False)
-    reclamos_ult_3m: int = Field(ge=0, le=6, strict=True)
-    uso_datos_gb: float = Field(ge=0, le=1000, strict=True, allow_inf_nan=False)
+    cargo_mensual: float = Field(ge=config.CARGO_RANGO[0], le=config.CARGO_RANGO[1], strict=True,
+                                 allow_inf_nan=False)
+    reclamos_ult_3m: int = Field(ge=config.RECLAMOS_RANGO[0], le=config.RECLAMOS_RANGO[1], strict=True)
+    uso_datos_gb: float = Field(ge=config.USO_DATOS_RANGO[0], le=config.USO_DATOS_RANGO[1], strict=True,
+                                allow_inf_nan=False)
     metodo_pago: Literal[*config.METODOS_PAGO]
     renovo_contrato: Literal[*config.RENOVACION]
     # Solo trazabilidad: no entra al modelo y no se devuelve (FR-011)
-    id_cliente: str | None = Field(default=None, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    id_cliente: str | None = Field(default=None, max_length=config.ID_CLIENTE_MAX,
+                                  pattern=config.ID_CLIENTE_PATRON)
 
 
 class Prediccion(BaseModel):
@@ -125,15 +128,31 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Riesgo de churn", version=config.MODEL_VERSION, lifespan=lifespan)
 
+# Rango permitido por campo, para decir el intervalo completo (US2; M7)
+RANGOS_CAMPO = {
+    "antiguedad_meses": config.ANTIGUEDAD_RANGO, "cargo_mensual": config.CARGO_RANGO,
+    "reclamos_ult_3m": config.RECLAMOS_RANGO, "uso_datos_gb": config.USO_DATOS_RANGO,
+    "presupuesto": (config.PRESUPUESTO_MIN, config.PRESUPUESTO_MAX),
+    "costo_por_contacto": (config.COSTO_CONTACTO_MIN, config.COSTO_CONTACTO_MAX),
+}
+
+
+def _num(x) -> str:
+    return str(int(x)) if float(x).is_integer() else str(x)
+
+
 # Mensajes en español por tipo de error; nunca repiten el valor recibido (FR-022)
-def _mensaje(err: dict) -> str:
+def _mensaje(err: dict, campo: str = "") -> str:
     tipo, ctx = err["type"], err.get("ctx", {})
+    if tipo in ("greater_than_equal", "less_than_equal") and campo in RANGOS_CAMPO:
+        lo, hi = RANGOS_CAMPO[campo]
+        return f"debe estar entre {_num(lo)} y {_num(hi)}"
     if tipo == "missing":
         return "campo obligatorio"
     if tipo == "extra_forbidden":
         return "campo no previsto"
     if tipo == "literal_error":
-        return f"valor no permitido; use {ctx.get('expected')}"
+        return f"valor no permitido; use {str(ctx.get('expected')).replace(' or ', ' o ')}"
     if tipo == "greater_than_equal":
         return f"debe ser mayor o igual que {ctx.get('ge')}"
     if tipo == "less_than_equal":
@@ -155,12 +174,15 @@ def _mensaje(err: dict) -> str:
 
 def _detalle(err: dict) -> dict:
     """Campo y mensaje; en lotes agrega la posición (base 1) del cliente inválido (FR-009)."""
+    if err["type"] == "json_invalid":  # la posición del carácter no es un campo (M6)
+        return {"campo": "cuerpo", "mensaje": "JSON mal formado"}
     loc = list(err["loc"][1:])
     d = {}
     if len(loc) >= 2 and loc[0] == "clientes" and isinstance(loc[1], int):
         d["posicion_cliente"] = loc[1] + 1
         loc = loc[2:]
-    return {"campo": ".".join(str(p) for p in loc) or "cuerpo", **d, "mensaje": _mensaje(err)}
+    campo = ".".join(str(p) for p in loc) or "cuerpo"
+    return {"campo": campo, **d, "mensaje": _mensaje(err, loc[-1] if loc else "")}
 
 
 @app.middleware("http")

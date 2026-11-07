@@ -10,7 +10,9 @@ import shutil
 import subprocess
 import sys
 import os
+import tempfile
 import urllib.request
+from pathlib import Path
 
 os.system("")  # habilita colores ANSI en la consola de Windows
 
@@ -45,6 +47,20 @@ def verificar_api(c) -> list[tuple[str, bool, str]]:
     return [
         ("API /health", h.get("estado") == "sano", f"estado={h.get('estado')} modelo v{h.get('version_modelo')}"),
         ("API /predict", "probabilidad_churn" in p, f"p={p.get('probabilidad_churn')} riesgo={p.get('nivel_riesgo')}"),
+    ]
+
+
+def verificar_rutas(c, clientes: list[dict]) -> list[tuple[str, bool, str]]:
+    """Lote, campaña, cambio de datos y panel (T062); `clientes` son al menos 100 filas válidas."""
+    lote = c.post("/predict/lote", json={"clientes": clientes}).json()
+    camp = c.post("/campana/contactos", json={"clientes": clientes}).json()
+    drift = c.post("/drift", json={"clientes": clientes}).json()
+    panel = c.get("/dashboard")
+    return [
+        ("API /predict/lote", len(lote.get("predicciones", [])) == len(clientes), f"{len(clientes)} clientes"),
+        ("API /campana/contactos", "contactos" in camp, f"{len(camp.get('contactos', []))} contactos"),
+        ("API /drift", "estado_general" in drift, f"estado={drift.get('estado_general')}"),
+        ("API /dashboard", panel.status_code == 200 and "<html" in panel.text.lower(), f"HTTP {panel.status_code}"),
     ]
 
 
@@ -94,15 +110,20 @@ def main() -> None:
             generar().to_csv(config.DATA_RAW, index=False)
         check("Dataset", True, str(config.DATA_RAW.relative_to(config.ROOT)))
         if not config.MODEL_PATH.exists():
-            import joblib
-            from churn.train import entrenar
+            from churn.train import entrenar, guardar_modelo
             res = entrenar(cargar_datos(config.DATA_RAW))
-            config.MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-            joblib.dump({"pipeline": res["pipeline"], "card": res["card"]}, config.MODEL_PATH)
+            guardar_modelo(res, config.MODEL_PATH, config.MODEL_CARD_PATH)  # con huella (FR-021)
         from fastapi.testclient import TestClient
         from churn.api import app
+        # La verificación no ensucia reports/ ni logs/ del proyecto
+        tmp = Path(tempfile.mkdtemp(prefix="smoke_churn_"))
+        config.DRIFT_REPORT_PATH, config.ULTIMO_LOTE_PATH = tmp / "drift.json", tmp / "ultimo_lote.json"
+        config.PREDICTIONS_LOG = tmp / "predicciones.jsonl"
         with TestClient(app) as c:
             for nombre, ok, detalle in verificar_api(c):
+                check(nombre, ok, detalle)
+            muestra = cargar_datos(config.DATA_RAW)[config.FEATURES].head(120).to_dict(orient="records")
+            for nombre, ok, detalle in verificar_rutas(c, muestra):
                 check(nombre, ok, detalle)
     except Exception as exc:
         check("Pipeline de punta a punta", False, repr(exc))

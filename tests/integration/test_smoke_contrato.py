@@ -44,3 +44,9 @@ def test_falla_con_el_contrato_viejo_status_ok():
     c = _ClienteFalso({"status": "ok", "version_modelo": "1.0.0"})
     ok_health = {n: ok for n, ok, _ in _smoke().verificar_api(c)}["API /health"]
     assert ok_health is False
+
+
+def test_las_rutas_de_lote_campana_drift_y_panel_pasan(client, clientes_lote):
+    resultados = _smoke().verificar_rutas(client, clientes_lote(120))
+    assert [n for n, _, _ in resultados] == ["API /predict/lote", "API /campana/contactos", "API /drift", "API /dashboard"]
+    assert all(ok for _, ok, _ in resultados)

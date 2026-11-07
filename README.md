@@ -1,4 +1,4 @@
-> **Repositorio del alumno**: el código de `src/churn/`, las pruebas y las especificaciones se construyen durante el taller con OpenCode y Spec Kit. Empieza por `plantillas/ASUM-DM_plantilla.md` y `prompts/PROMPTS_OPENCODE.md`. La solución está en `referencia/`.
+> **Repositorio del alumno**: el código de `src/churn/`, las pruebas y las especificaciones se construyen durante el taller con OpenCode y Spec Kit. Empieza por `plantillas/ASUM-DM_plantilla.md` y `prompts/PROMPTS_OPENCODE.md`. Este repositorio ya contiene la solución construida.
 
 # Taller · Churn Telco con ASUM-DM + SDD + ECC + OpenCode + MLOps
 
@@ -16,18 +16,19 @@ ASUM-DM (negocio) → Spec Kit (constitución, spec, plan, tareas) → código +
 ```
 
 ### Estado actual
-El proyecto se construye paso a paso. Hoy funciona:
+Todo lo de la especificación `specs/002-campana-retencion-monitoreo/` está implementado y probado (325 pruebas):
 
 | Pieza | Estado | Comando |
 |---|---|---|
-| Datos sintéticos | listo | `uv run python -m churn.dataset` |
-| Entrenamiento y model card | listo (`aprobado_para_despliegue = False`, ver §7) | `uv run python -m churn.train` |
-| Pruebas | listo (80) | `uv run pytest` |
-| `POST /predict` y `/docs` | listo | `uv run uvicorn churn.api:app --reload` |
-| `/predict/lote`, `/campana/contactos`, `/health`, `/metrics`, `/drift`, `/dashboard` | **pendiente** (US3–US7, Fase 10 de `specs/002-campana-retencion-monitoreo/tasks.md`) | — |
-| Registro de predicciones con hash, límite de solicitudes, comprobación de integridad del modelo | **pendiente** (Fase 12) | — |
+| Datos sintéticos (el CSV existente es la fuente de verdad, D6) | listo | `uv run python -m churn.dataset` |
+| Entrenamiento y model card con huella (`hash_modelo`) | listo; `aprobado_para_despliegue = False` (ver §7) | `uv run python -m churn.train` |
+| Pruebas | listo (**325**) | `uv run pytest` |
+| `POST /predict`, `POST /predict/lote`, `POST /campana/contactos` | listo | `uv run uvicorn churn.api:app` |
+| `GET /health`, `GET /metrics`, `GET /dashboard`, `POST` y `GET /drift` | listo | ídem |
+| Registro con id hasheado, límite de solicitudes por IP, integridad del modelo | listo | automático al levantar la API |
+| Simulación de cambio de datos y de tráfico | listo | `uv run python -m churn.drift --escenario crisis` · `uv run python scripts/simular_trafico.py` |
 
-> `tareas.py` y `Makefile` citan `churn.drift` y `scripts/simular_trafico.py`, que aún no funcionan hasta que se implementen esas piezas.
+Pendiente de personas, no de código: textos definitivos de Retención y Legal (T064), aprobación del dueño del modelo (T068) y revisión por pares del ASUM-DM.
 
 ## Inicio rápido (solo el proyecto)
 Necesitas Python 3.11+ y [uv](https://docs.astral.sh/uv/). Desde la raíz del repositorio:
@@ -47,7 +48,7 @@ uv sync --extra dev
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync --extra dev
 ```
-`uv sync` crea `.venv` e instala las dependencias. No hace falta activar el entorno: usa `uv run`. Comprueba:
+`uv sync` crea `.venv` e instala las dependencias; el grupo `dev` (pytest, httpx) se instala también con `uv sync` a secas y con `--extra dev`. No hace falta activar el entorno: usa `uv run`. Comprueba:
 ```bash
 uv run python -c "import churn; print('ok')"     # salida esperada: ok
 ```
@@ -58,17 +59,18 @@ Si prefieres instalar todas las herramientas del taller (VS Code, Ollama, OpenCo
 |---|---|
 | `business/ASUM-DM.md` | Entendimiento de negocio completo (referencia) |
 | `.specify/memory/constitution.md`, `specs/002-campana-retencion-monitoreo/` | Constitución, spec, plan, tareas y checklists (la 002 reemplaza a `specs/001-api-churn`) |
-| `src/churn/` | Código hecho: `config`, `dataset`, `features`, `train`, `evaluate`, `predict`, `recomendaciones`, `api` |
-| `tests/` | 80 pruebas pytest (datos, features, evaluación, entrenamiento, API) |
+| `src/churn/` | Código: `config`, `dataset`, `features`, `train`, `evaluate`, `mitigacion`, `predict`, `campana`, `drift`, `metricas`, `registro`, `limitador`, `recomendaciones`, `api` |
+| `tests/` | 325 pruebas pytest: 185 unitarias (`tests/unit/`), 132 de integración (`tests/integration/`) y 8 de contrato de la API (`tests/test_api.py`) |
 | `data/raw/churn_telco.csv` | Dataset sintético determinista (5.000 clientes, semilla 42) |
 | `models/` | Modelo serializado + `model_card.json` |
-| `dashboard/index.html` | Panel de métricas sin dependencias; lee `/metrics`, que aún no existe |
+| `dashboard/index.html` | Panel de solo lectura sin dependencias; lo sirve `GET /dashboard` y lee `/health` y `/metrics` |
 | `.opencode/skills/` | 6 skills estilo ECC: ML, testing, seguridad, arquitectura, docs, revisión vs spec |
 | `opencode.json`, `Modelfile`, `AGENTS.md` | Configuración de OpenCode + Ollama local y reglas del agente |
 | `prompts/PROMPTS_OPENCODE.md` | Prompts en español, listos para copiar |
 | `plantillas/` | Plantillas ASUM-DM, spec, plan, tasks |
-| `docs/` | Guion del facilitador, gobernanza, ética, rúbrica, plan B, checklist previo, reto |
+| `docs/` | Gobernanza, ética, auditoría (`AUDITORIA.md`, `AUDITORIA_EQUIDAD.md`), decisiones (`DECISIONES.md`), rúbrica, plan B, checklist previo, reto |
 | `scripts/` | Instaladores por SO, smoke test y simulador de tráfico |
+| `Makefile`, `tareas.py`, `Dockerfile` | Atajos (`make probar`), versión multiplataforma y imagen opcional (§8) |
 
 ## 1. Requisitos
 - 16 GB de RAM recomendado (8 GB con el modelo 3B), 15 GB de disco libre.
@@ -123,18 +125,36 @@ uv sync --extra dev
 `pyproject.toml`. No es necesario activar el entorno: use `uv run` para ejecutar comandos dentro de él. El archivo
 `uv.lock` fija las versiones; consérvelo y súbalo junto con el proyecto para que todos recreen el mismo entorno.
 
-**Spec Kit en este repo** (crea `.opencode/commands/speckit.*`):
-```bash
-specify integration install opencode
-# Si tu versión no lo reconoce: specify init --here --integration opencode
-```
+**Spec Kit en este repo (D9).** El repositorio trae la integración `claude` (`.claude/skills/`, comandos con guion) y no se reinstala nada.
+Los dos nombres son equivalentes; usa el de tu herramienta:
+
+| Paso | Claude Code | OpenCode |
+|---|---|---|
+| Constitución | `/speckit-constitution` | `/speckit.constitution` |
+| Especificar | `/speckit-specify` | `/speckit.specify` |
+| Plan y tareas | `/speckit-plan` · `/speckit-tasks` | `/speckit.plan` · `/speckit.tasks` |
+| Revisar y converger | `/speckit-analyze` · `/speckit-converge` | `/speckit.analyze` · `/speckit.converge` |
+| Implementar | `/speckit-implement` | `/speckit.implement` |
+
+Para usar los comandos `/speckit.*` en OpenCode hay que instalar esa integración (crea `.opencode/commands/`):
+`specify integration install opencode`. Los `prompts/PROMPTS_OPENCODE.md` están escritos con esa variante.
 
 ## 4. Smoke test
 ```bash
 uv run python scripts/smoke_test.py            # verifica herramientas, Ollama, modelo y API
 uv run python scripts/smoke_test.py --sin-ia   # sólo la parte Python (Plan B)
 ```
-Salida esperada al final: `Todo listo para el taller.`
+Salida esperada de `--sin-ia` (el bloque de Python; las líneas de herramientas dependen de tu equipo):
+```
+== Python: dependencias y pipeline ==
+[OK] Dependencias (pandas, scikit-learn, fastapi)
+[OK] Dataset data/raw/churn_telco.csv
+[OK] API /health estado=sano modelo v1.0.0
+[OK] API /predict p=0.9787896116200316 riesgo=alto
+
+Todo listo para el taller.
+```
+Sin `--sin-ia`, si Ollama no está activo, la verificación obligatoria `Servidor Ollama activo` falla: ejecuta `ollama serve`.
 
 ## 5. Configuración de OpenCode con Ollama
 `opencode.json` (ya incluido) apunta a `http://localhost:11434/v1` con el proveedor `@ai-sdk/openai-compatible`:
@@ -165,7 +185,7 @@ las descubre automáticamente; el agente las carga con su herramienta `skill`. E
 (opcional, requiere internet) sigue su guía para OpenCode o copia skills de su carpeta `skills/` a `.opencode/skills/`.
 
 ## 6. Uso
-Cada comando va con su salida esperada (real, de la última ejecución).
+Cada comando va con su salida esperada (real, de la última ejecución; rutas y números de proceso varían). Los comandos funcionan tal cual en macOS.
 
 **1. Generar datos**
 ```bash
@@ -173,11 +193,11 @@ uv run python -m churn.dataset
 ```
 ```
 5000 filas · escenario base · churn 24.7%
-.../data/raw/churn_telco.csv ya existe; use --forzar para sobrescribirlo
+/ruta/al/repo/data/raw/churn_telco.csv ya existe; use --forzar para sobrescribirlo
 ```
-No pisa el CSV existente. Para regenerarlo con este generador: `uv run python -m churn.dataset --forzar`
-(la columna `periodo` del CSV original no se genera). El escenario de prueba de drift no escribe en `data/raw`:
-`uv run python -m churn.dataset --escenario crisis` → `5000 filas · escenario crisis · churn 30.7%`.
+`data/raw/churn_telco.csv` es la **fuente de verdad** (D6): es un insumo con 25,5 % de churn y una columna `periodo`, no la salida del generador. Por eso el
+comando no lo pisa. El generador (`churn.dataset.generar`) es solo para demos y pruebas; `--forzar` lo reemplaza con datos generados (24,7 %) y cambia las cifras del
+ASUM-DM. El escenario de crisis no escribe en `data/raw`: `uv run python -m churn.dataset --escenario crisis` → `5000 filas · escenario crisis · churn 30.7%`.
 
 **2. Entrenar**
 ```bash
@@ -186,36 +206,44 @@ uv run python -m churn.train --algoritmo rf      # Random Forest, solo si la bas
 ```
 ```
 logreg · umbral 0.538 · recall 0.734 · precision 0.493 · ROC-AUC 0.811
-criterios: {'recall': True, 'precision': True, 'roc_auc': True, 'equidad_recall': False, 'tamano_grupos': True}
+criterios: {'recall': True, 'precision': True, 'precision_top': True, 'roc_auc': True, 'roi': True, 'equidad_recall': False, 'ratio_impacto_dispar': True, 'tamano_grupos': True}
 aprobado_para_despliegue = False
+  no aprobado: brecha de recall entre grupos de edad 0.147 > 0.05 (18-25: 0.797; 60+: 0.650)
 ```
-Escribe `models/churn_model.joblib`, `models/model_card.json` y `reports/metrics/evaluacion.json`.
-Cumple recall, precision y ROC-AUC, pero **no** el criterio de equidad (brecha de recall entre grupos de edad 0,147 > 0,05),
-así que el modelo no queda aprobado.
+Escribe `models/churn_model.joblib`, `models/model_card.json` (con `hash_modelo`, el SHA-256 del `.joblib`) y `reports/metrics/evaluacion.json`. Cumple los 5 criterios
+de la constitución, pero **no** el de equidad, así que el modelo no queda aprobado (ver §7). Reentrenar cambia el `.joblib` byte a byte (lleva la fecha): se versiona
+junto con su `model_card.json`.
 
 **3. Probar**
 ```bash
 uv run pytest
 ```
 ```
-80 passed in 0.9s
+...................................................                      [100%]
+325 passed in 14.47s
 ```
+(`-q` está activado en `pyproject.toml`; la barra de puntos ocupa varias líneas.)
 
 **4. Levantar la API**
 ```bash
-uv run uvicorn churn.api:app --reload
+uv run uvicorn churn.api:app
 ```
 ```
+INFO:     Started server process [5187]
+INFO:     Waiting for application startup.
+falta CHURN_HASH_SALT: se usa la sal de desarrollo
+INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
-Abre <http://localhost:8000/docs>. Si el puerto está ocupado, añade `--port 8001`. Deja la terminal abierta.
-Necesita `models/churn_model.joblib` (paso 2); sin él, `/predict` responde 503.
+Abre <http://localhost:8000/docs>. Añade `--reload` mientras desarrollas y `--port 8001` si el puerto está ocupado. Deja la terminal abierta. Necesita
+`models/churn_model.joblib` **y** su `models/model_card.json` con la huella (paso 2): sin ellos, o con el modelo alterado, `/predict` responde 503 y `/health` `no_sano`.
+La línea «falta CHURN_HASH_SALT» desaparece al exportar la sal (§8): `CHURN_HASH_SALT='una-frase-larga' uv run uvicorn churn.api:app`.
 
 **5. Consultar un cliente** (otra terminal)
 
 macOS / Linux
 ```bash
-curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
+curl -s -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
   -d '{"antiguedad_meses": 6, "tipo_plan": "prepago", "cargo_mensual": 45.5, "reclamos_ult_3m": 3, "uso_datos_gb": 2.1, "metodo_pago": "efectivo", "renovo_contrato": "no"}'
 ```
 Windows (PowerShell)
@@ -224,37 +252,68 @@ $cuerpo = '{"antiguedad_meses": 6, "tipo_plan": "prepago", "cargo_mensual": 45.5
 Invoke-RestMethod -Method Post -Uri http://localhost:8000/predict -ContentType "application/json" -Body $cuerpo
 ```
 ```json
-{"probabilidad_churn": 0.98, "nivel_riesgo": "alto",
- "recomendacion": "Contactar con oferta de retención; revisión humana antes de actuar",
- "version_modelo": "1.0.0",
- "aviso_uso_responsable": "Apoyo a la decisión: este resultado no es una decisión. Requiere revisión humana antes de actuar sobre el cliente."}
+{"probabilidad_churn":0.9787896116200316,"nivel_riesgo":"alto","recomendacion":"Contactar con oferta de retención; revisión humana antes de actuar","version_modelo":"1.0.0","aviso_uso_responsable":"Apoyo a la decisión: este resultado no es una decisión. Requiere revisión humana antes de actuar sobre el cliente.","alerta_equidad":"Alerta de equidad: modelo no aprobado para despliegue (brecha de recall entre grupos de edad 0.147 > 0.05 (18-25: 0.797; 60+: 0.650)). Úselo solo como apoyo con revisión humana."}
 ```
-Un dato inválido devuelve 422. Por ejemplo, el cliente anterior con `"antiguedad_meses": 121` y un campo extra `"cedula"`:
+`alerta_equidad` aparece mientras el modelo no esté aprobado (D2). Un dato inválido devuelve 422 sin repetir el valor recibido. Por ejemplo, el cliente anterior con `"antiguedad_meses": 121` y un campo extra `"cedula"`:
 ```json
-{"error": "Entrada inválida", "detalle": [
-  {"campo": "antiguedad_meses", "mensaje": "debe ser menor o igual que 120"},
-  {"campo": "cedula", "mensaje": "campo no previsto"}]}
+{"error":"Entrada inválida","detalle":[{"campo":"antiguedad_meses","mensaje":"debe estar entre 1 y 120"},{"campo":"cedula","mensaje":"campo no previsto"}]}
 ```
+Más de 60 solicitudes por minuto desde la misma IP devuelven 429 con `{"error": "Demasiadas solicitudes; reintente en N s"}` y la cabecera `Retry-After`.
 
-**6. Ver el dashboard** — *pendiente*. `dashboard/index.html` ya existe, pero necesita `GET /metrics` y `GET /dashboard`
-(tareas de la Fase 10 y US4). Hoy `http://localhost:8000/dashboard` responde 404.
+**6. Estado del servicio**
+```bash
+curl -s http://localhost:8000/health
+```
+```json
+{"estado":"sano","modelo_cargado":true,"version_modelo":"1.0.0","aprobado_para_despliegue":false,"alertas":["brecha de recall entre grupos de edad 0.147 > 0.05 (18-25: 0.797; 60+: 0.650)"],"error":null}
+```
+`estado` describe solo la salud operativa. Un modelo alterado da `503` con `"estado":"no_sano"`.
 
-| Endpoint | Estado | Propósito |
-|---|---|---|
-| `POST /predict` | listo | Un cliente → probabilidad, nivel, recomendación, versión y aviso |
-| `GET /docs` | listo | Documentación interactiva |
-| `POST /predict/lote`, `POST /campana/contactos`, `POST /drift` | pendiente | Lotes de hasta 1.000, lista de contacto, cambio de datos |
-| `GET /health`, `GET /metrics`, `GET /dashboard` | pendiente | Salud, métricas agregadas y vista de solo lectura |
+**7. Campaña, cambio de datos y dashboard**
+```bash
+uv run python scripts/simular_trafico.py --escenario crisis --n 500    # con la API arriba
+uv run python -m churn.drift --escenario crisis
+```
+```
+[ok] 500 clientes (crisis) enviados. Abra http://localhost:8000/dashboard
+```
+```
+escenario crisis · estado general: critico · evaluar reentrenamiento
+  cargo_mensual      PSI 0.227  alerta
+  reclamos_ult_3m    PSI 3.275  critico
+  (las otras 5 variables: estable)
+  recall     base 0.734 → crisis 0.868
+  precision  base 0.493 → crisis 0.399
+```
+Abre <http://localhost:8000/dashboard> (solo lectura). La crisis cambia las entradas, no las etiquetas de churn, por eso el recall *sube*: mide el efecto sobre las variables, no un churn nuevo.
 
-Contrato completo: `specs/002-campana-retencion-monitoreo/contracts/openapi.yaml`.
+**Atajos** (`make` en macOS/Linux; en Windows `uv run python tareas.py <tarea>`): `make datos`, `entrenar`, `entrenar-rf`, `probar`, `api`, `trafico`, `drift`, `smoke`, `todo`, `limpiar`.
 
-### Trazabilidad (lo hecho hasta ahora)
+| Endpoint | Propósito |
+|---|---|
+| `POST /predict` | Un cliente → probabilidad, nivel, recomendación, versión y aviso |
+| `POST /predict/lote` | Hasta 1.000 clientes, mismo orden, más el resumen de riesgo (mínimo 20 clientes) |
+| `POST /campana/contactos` | Lote de hasta 5.000 con presupuesto y costo por contacto → lista de contacto por ingreso esperado |
+| `POST /drift` · `GET /drift` | Compara un lote con la referencia de entrenamiento (PSI) · último informe |
+| `GET /health` · `GET /metrics` · `GET /dashboard` | Salud, métricas agregadas sin identificadores y vista de solo lectura |
+| `GET /docs` | Documentación interactiva |
+
+En `/metrics`, `latencia_ms` mide solo la puntuación del modelo (no la validación ni la serialización) sobre las últimas 1.000 predicciones del proceso, y `roi_esperado` es una estimación, no el ROI incremental del ASUM-DM (que exige grupo de control).
+
+Contrato completo: `specs/002-campana-retencion-monitoreo/contracts/openapi.yaml`. Escenarios de uso: `specs/002-campana-retencion-monitoreo/quickstart.md`.
+
+### Trazabilidad (resumen)
 | Requisito | Tarea | Archivo | Prueba |
 |---|---|---|---|
-| FR-016 datos y entrenamiento reproducibles | T004, T009 | `src/churn/dataset.py`, `train.py` | `tests/unit/test_dataset.py`, `tests/integration/test_train.py` |
-| FR-006, FR-008 validación y sin edad | T005, T010 | `src/churn/features.py`, `api.py` | `tests/unit/test_features.py`, `tests/integration/test_api_validacion.py` |
-| FR-018, SC-010 métricas y equidad | T006, T011 | `src/churn/evaluate.py` | `tests/unit/test_evaluate.py` |
-| FR-001..005, FR-007 predicción y errores | T020–T026 | `src/churn/api.py`, `predict.py` | `tests/test_api.py`, `tests/integration/test_api_predict.py` |
+| FR-016 reproducibilidad | T004, T009, T015 | `dataset.py`, `train.py` | `tests/unit/test_dataset.py`, `tests/integration/test_train.py` |
+| FR-006..008 validación, sin edad | T005, T010, T013 | `features.py`, `api.py` | `test_features.py`, `test_api_validacion.py`, `test_id_cliente.py` |
+| FR-001..005 predicción y aviso | T020–T026 | `api.py`, `predict.py` | `test_api_predict.py`, `tests/test_api.py` |
+| FR-009..012 lote y campaña | T027–T041 | `campana.py`, `api.py` | `test_api_lote.py`, `test_api_campana.py`, `test_campana.py` |
+| FR-013, FR-014 salud y cambio de datos | T043–T055 | `drift.py`, `api.py` | `test_api_drift.py`, `test_drift.py` |
+| FR-015, FR-023 registro | T044, T045, T047, T072, T081 | `registro.py`, `api.py` | `test_api_registro.py`, `test_registro_campos.py` |
+| FR-020 límite · FR-021 integridad · FR-022 errores | T069–T071, T077–T080 | `limitador.py`, `predict.py`, `api.py` | `test_limitador.py`, `test_integridad_modelo.py`, `test_api_errores.py` |
+| FR-018, FR-024, SC-010 métricas y equidad | T006, T011, T082, T083 | `evaluate.py`, `train.py`, `mitigacion.py` | `test_evaluate.py`, `test_equidad.py` |
+| FR-003, FR-017 recomendaciones | T018, T076, T086 | `recomendaciones.py` | `test_recomendaciones_terminos.py` |
 
 ## 7. Uso responsable
 - **Apoyo, no decisión**: el servicio no debe usarse para negar servicios, cambiar precios ni actuar sobre un cliente
@@ -263,9 +322,36 @@ Contrato completo: `specs/002-campana-retencion-monitoreo/contracts/openapi.yaml
   entre grupos es 0,147 (el criterio es ≤ 0,05): el modelo **no está aprobado** (`aprobado_para_despliegue = False`) y la
   aprobación humana del dueño del modelo sigue vacía en `model_card.json`. Con ~130 clientes en el grupo `60+` la medida es
   ruidosa; hay que revisarla antes de cualquier uso real.
-- **Privacidad**: `id_cliente` es opcional, se usa solo para trazabilidad y no se devuelve en `/predict`. Los errores no repiten
-  los valores enviados. El registro de predicciones con identificadores codificados (hash con sal) **aún no está implementado**;
-  hasta entonces el servicio no registra identificadores.
+- **Privacidad**: `id_cliente` es opcional (hasta 64 caracteres: letras, números, guion y guion bajo), se usa solo para trazabilidad y no se devuelve en `/predict`.
+  Los errores no repiten los valores enviados ni muestran trazas. Cada predicción escribe una línea en `logs/predicciones.jsonl` con solo `fecha`, `id_codificado`
+  (SHA-256 con sal, 16 caracteres), `probabilidad_churn`, `nivel_riesgo` y `version_modelo`; sin identificador se guarda `null`.
 - **Datos**: son sintéticos. Antes de usar datos reales hacen falta base legal, derechos de acceso y supresión, y autenticación.
 
 Ver [docs/ETICA.md](docs/ETICA.md) y la [constitución](.specify/memory/constitution.md).
+
+## 8. Seguridad, privacidad y paso a producción
+**Secreto del codificado.** El identificador se guarda como `SHA-256(sal + id)`. La sal sale de la variable de entorno `CHURN_HASH_SALT`:
+```bash
+export CHURN_HASH_SALT='una-frase-larga-y-secreta'    # macOS / Linux
+uv run uvicorn churn.api:app
+```
+Sin ella el servicio avisa y usa una sal de desarrollo (no usar en producción). No la guardes en el repositorio. Si la cambias, los códigos anteriores dejan de cruzar
+con los nuevos; la auditoría trimestral (`docs/AUDITORIA_EQUIDAD.md`) necesita la sal vigente del trimestre.
+
+**Retención.** `logs/predicciones.jsonl` conserva 90 días (`config.RETENCION_REGISTRO_DIAS`); las líneas más viejas se eliminan al arrancar y cada hora. Solo lo lee Ciencia de Datos.
+`logs/*.jsonl` está en `.gitignore`.
+
+**Acceso solo local del taller.** El servicio escucha en `127.0.0.1`, sin autenticación, con datos sintéticos. El límite de 60 solicitudes por minuto por IP
+(`config.LIMITE_SOLICITUDES_POR_MINUTO`) vive en memoria de un solo proceso, no es una defensa de red, y usa la IP del socket (no confía en `X-Forwarded-For`).
+
+**Integridad del modelo.** Al cargar, el servicio calcula el SHA-256 de `churn_model.joblib` y lo compara con `hash_modelo` de `models/model_card.json` *antes* de
+deserializarlo. Si no coincide o falta, no sirve el modelo.
+
+**Versionado de artefactos (T102).** `models/` y `reports/metrics/` se versionan: la API necesita el modelo para arrancar y su huella debe viajar con él. `data/processed/` y `logs/*.jsonl` no.
+
+**Docker (opcional).** Hay un `Dockerfile` sin cuentas ni registros: `docker build -t churn-api .` y `docker run -p 8000:8000 -e CHURN_HASH_SALT=... churn-api`.
+No se ha construido en este equipo (el demonio de Docker no estaba activo); se validó solo que la instalación editable resuelve `models/` desde `/app`.
+
+**Antes de producción** (no cubierto por este taller): autenticación y control de acceso por rol; TLS y un proxy que fije la IP real del cliente para el límite;
+base legal, derechos de acceso, rectificación y supresión sobre los datos (`docs/ETICA.md`); textos definitivos de Retención y Legal; revisión por pares del ASUM-DM;
+aprobación del dueño del modelo (`aprobacion` en el model card); y resolver la brecha de equidad o aceptarla de forma explícita. Detalle en `docs/GOBERNANZA.md`.

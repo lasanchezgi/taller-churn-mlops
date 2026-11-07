@@ -43,6 +43,14 @@ FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 # Atributo sensible: NO entra al modelo, sólo se usa para auditar sesgo
 SENSITIVE_COL = "rango_edad"
 
+# Rangos válidos de las variables numéricas (FR-006): los usan el generador, la calidad de datos y la API
+ANTIGUEDAD_RANGO = (1, 120)
+CARGO_RANGO = (10.0, 1000.0)
+RECLAMOS_RANGO = (0, 6)
+USO_DATOS_RANGO = (0.0, 1000.0)
+ID_CLIENTE_MAX = 64
+ID_CLIENTE_PATRON = r"^[A-Za-z0-9_-]+$"
+
 # Dominios válidos (se reutilizan en la validación de la API)
 PLANES = ["prepago", "pospago_basico", "pospago_premium"]
 METODOS_PAGO = ["tarjeta_credito", "debito_automatico", "efectivo", "transferencia"]

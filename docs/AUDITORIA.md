@@ -2,6 +2,7 @@
 
 Fecha: 2026-11-06 · Rama `main` (sin commits nuevos; casi todo el código está sin versionar) · Alcance: repositorio completo.
 Regla seguida: no se modificó código, specs ni configuración; solo se creó este informe.
+**Actualizado el 2026-11-07:** el seguimiento por etapas está en la sección 7 y la re-auditoría completa, con la tabla antes/después, en la sección 8.
 
 **Fuente de verdad real.** El pedido citaba `specs/001-api-churn/` (spec, plan, tareas). Esa carpeta solo tiene `spec.md` y
 `checklists/requirements.md`, y está marcada «Reemplazada por 002» (`specs/001-api-churn/spec.md:7`). La auditoría se hizo contra
@@ -317,8 +318,8 @@ Notas de la etapa:
 | I3 · Regla del umbral | ✅ | `train.elegir_umbral` (FR-027): ya no aborta; guarda `regla_umbral`; `tests/integration/test_train_umbral.py` prueba ambos caminos |
 | I2 · Modelo no aprobado servido sin aviso | ✅ | Decisión D2: `/predict` y `/predict/lote` traen `alerta_equidad`; `/health` trae `aprobado_para_despliegue` y `alertas` (`estado` sigue siendo salud operativa); `tests/integration/test_api_alerta_equidad.py`; promoción manual en `docs/GOBERNANZA.md` |
 | M9 · Ratio de impacto dispar | ✅ | Condición de aprobación ≥ 0,80 (`criterios_cumplidos.ratio_impacto_dispar`); hoy 0,903 |
-| I4 · Model card frente al data-model | ⚠️ | Hecho: `regla_umbral`, `criterios_cumplidos` (8), `razones_no_aprobado`, `revision_proxies`, `precision_top`, `roi_estimado`, precision y reparto del 5 % por grupo. Falta `hash_modelo` (Etapa 3, T128–T129) |
-| I6 · FR-024 / FR-025 | ⚠️ | FR-024 ✅ (`revision_proxies` en el card y `churn.mitigacion`). FR-025 (`docs/AUDITORIA_EQUIDAD.md`, T087) queda para la Etapa 4 |
+| I4 · Model card frente al data-model | ⚠️ (cerrado en la Etapa 3) | Hecho: `regla_umbral`, `criterios_cumplidos` (8), `razones_no_aprobado`, `revision_proxies`, `precision_top`, `roi_estimado`, precision y reparto del 5 % por grupo. Falta `hash_modelo` (Etapa 3, T128–T129) |
+| I6 · FR-024 / FR-025 | ⚠️ | FR-024 ✅ (`revision_proxies` en el card y `churn.mitigacion`). FR-025 (`docs/AUDITORIA_EQUIDAD.md`, T087): cerrado en la Etapa 4 |
 | B5 · SC-010 (brecha de recall ≤ 0,05) | ⚠️ **Abierto, justificado** | Sigue en 0,147 (18-25: 0,797; 60+: 0,650). Por D2 se sirve como no aprobado, con alerta; el criterio no se relajó. Ver el intento de mitigación abajo |
 
 **Intento de mitigación (D2)** — `python -m churn.mitigacion`, `reports/metrics/mitigacion_equidad.json`, mismo split y semilla:
@@ -337,3 +338,126 @@ Notas de la etapa:
 - **Sobre el camino 2 de D4:** con `MIN_RECALL = 0,70` el segundo camino («mayor recall») es prácticamente inalcanzable, porque marcar a todos los clientes da recall 1,0. Se probó forzando `MIN_RECALL` por encima de 1. En la práctica el modelo queda no aprobado por otros criterios, como hoy por la equidad.
 
 Criterios de la constitución con el CSV: precision en el 5 % (k = 62) 0,758; ROI estimado 9,33; los cinco cumplen.
+
+### Etapa 3 · Privacidad y seguridad
+
+| Hallazgo | Estado | Evidencia |
+|---|---|---|
+| B2 · Registro no conectado a la API | ✅ | `/predict`, `/predict/lote` y `/campana/contactos` escriben `logs/predicciones.jsonl` con `id_codificado`; solo 5 campos (`fecha`, `id_codificado`, `probabilidad_churn`, `nivel_riesgo`, `version_modelo`) y retención de 90 días (`config.RETENCION_REGISTRO_DIAS`). `tests/integration/test_api_registro.py`, `tests/unit/test_registro_campos.py` |
+| I5 · Sin límite de solicitudes ni integridad | ✅ | `src/churn/limitador.py` (60 por minuto por IP, 429 con `{"error": …}` y `Retry-After`); `predict.cargar_modelo` compara el SHA-256 del `.joblib` con `hash_modelo` del card **antes** de deserializar. `tests/unit/test_limitador.py`, `tests/integration/test_api_limite.py`, `tests/unit/test_integridad_modelo.py` |
+| I4 · Model card frente al data-model | ✅ | `train.guardar_modelo` escribe `hash_modelo` solo en `models/model_card.json` (el `.joblib` contiene el card); `tests/integration/test_train.py` |
+| FR-022 · Errores sin valores ni trazas | ✅ | Con un valor centinela en `id_cliente`, plan y tipos, ningún 422/500/503 lo repite ni muestra rutas o trazas: `tests/integration/test_api_errores.py`. Sin cambios de código: el manejador ya lo cumplía |
+
+### Etapa 4 · Menores, documentación y cierre
+
+| Hallazgo | Estado | Evidencia |
+|---|---|---|
+| M1 · README desactualizado | ✅ | Conteo real de pruebas (325), estado real de las rutas, comandos y salidas ejecutados en macOS, sin referencia a `referencia/`, generador solo para demos (D6) |
+| M2 · Comandos de Spec Kit | ✅ | README: tabla `/speckit-*` (Claude Code) frente a `/speckit.*` (OpenCode) (D9) |
+| M3 · `uv sync` quita `pytest` | ✅ | `[dependency-groups] dev` en `pyproject.toml`: `uv sync` a secas conserva `pytest`; `--extra dev` sigue funcionando |
+| M4 · Atajos rotos en macOS | ✅ | `Makefile` usa `uv run python tareas.py`; `make datos`, `probar`, `drift` y `smoke` ejecutados |
+| M6 · JSON malformado | ✅ | `{"campo": "cuerpo", "mensaje": "JSON mal formado"}`; `test_api_errores.py` |
+| M7 · Mensajes y límites duplicados | ✅ | «debe estar entre 1 y 120», categorías con «o»; los rangos viven en `config.py` y los usan `api.py`, `dataset.py` y `features.py` |
+| M10 · Referencias a la 001 | ✅ | `.opencode/skills/spec-code-review`, `docs/PLAN_B.md` y `prompts/PROMPTS_OPENCODE.md` apuntan a la 002; las menciones que quedan son históricas a propósito |
+| M11 · Higiene del repo | ✅ | `.gitignore` ampliado; decisión T102: `models/` y `reports/metrics/` se versionan (README §8, GOBERNANZA §3); `Dockerfile` opcional (no construido, ver Re-auditoría) |
+| I6 · FR-025 | ✅ | `docs/AUDITORIA_EQUIDAD.md` y `tests/unit/test_docs_auditoria_equidad.py` |
+| I10, D2, D10 en documentos | ✅ | `docs/GOBERNANZA.md` §9 y `business/ASUM-DM.md` §1.4 y §8 |
+
+---
+
+## 8. Re-auditoría
+
+Fecha: 2026-11-07 · Rama `main`, tras las etapas 0 a 4 · Alcance: repositorio completo, las 5 fases de la auditoría original, contra `specs/002-campana-retencion-monitoreo/`.
+
+**Artefactos que generó esta re-auditoría** (declarados como en la original):
+- `python -m churn.train` dos veces sobrescribió `models/` y `reports/metrics/evaluacion.json`; se restauraron desde una copia previa y `git status` no muestra cambios en `models/`, `reports/` ni `data/`.
+- Para el escenario 18 se agregó un byte a `models/churn_model.joblib`; se restauró desde la copia (el servicio volvió a `sano`).
+- `drift.json` y `ultimo_lote.json` se sobrescribieron con las simulaciones y se restauraron con `git checkout`; se movió `drift.json` unos minutos para ver el 404 de `GET /drift`.
+- `logs/predicciones.jsonl` se generó (6.302 líneas en la prueba de escenarios) y se borró. `data/raw/churn_telco.csv` no cambió (md5 `81bced38…` antes y después).
+- Se levantó `uvicorn` en el puerto 8000 varias veces y se detuvo cada vez. Copia previa y scripts en el directorio temporal de la sesión.
+
+### Fase 1 · Inventario y fuentes
+- Fuente de verdad: `business/ASUM-DM.md` → `.specify/memory/constitution.md` 2.0.1 → `specs/002-…` (la 001 está marcada «Reemplazada»); `AGENTS.md` ya apunta a la 002.
+- `src/churn/`: 15 módulos, 1.606 líneas; 41 archivos de prueba; 139 archivos versionados.
+- Spec: 28 FR y 10 SC. `tasks.md`: 135 tareas, 129 marcadas; las 6 sin marcar son T007, T012 y T093 (sustituidas u obsoletas por decisión, D7), T064 y T068 (pasos humanos) y T135 (esta re-auditoría).
+- `docs/prompts_taller.md` sigue sin existir (el equivalente es `prompts/PROMPTS_OPENCODE.md`).
+
+### Fase 2 · Ejecución real
+
+| # | Comando | Esperado | Obtenido | Antes | Ahora |
+|---|---|---|---|---|---|
+| 1 | `uv sync` | Entorno listo, conserva `pytest` | `pytest 9.2.0` sigue instalado | ⚠️ | ✅ |
+| 2 | `uv run python -m churn.dataset` | Informa y no pisa el CSV | `5000 filas · escenario base · churn 24.7%` + «ya existe; use --forzar»; md5 del CSV igual | ⚠️ | ✅ (documentado: el CSV es fuente de verdad, D6) |
+| 3 | `uv run python -m churn.train` (×2) | Métricas ≥ umbrales y reproducible | `logreg · umbral 0.538 · recall 0.734 · precision 0.493 · ROC-AUC 0.811`; los 5 criterios y la razón de no aprobación (brecha 0,147). Dos corridas: el card difiere solo en `fecha_entrenamiento` y `hash_modelo` | ✅/❌ | ✅ técnico / ❌ equidad (abierto, B5) |
+| 4 | `uv run pytest` | Todo en verde | `325 passed in 14.47s` (185 unitarias, 132 de integración, 8 de contrato) | ✅ | ✅ |
+| 5 | `uv run python -m churn.drift --escenario crisis` | Informe PSI + comparación | `critico`; `reclamos_ult_3m` PSI 3,275 y `cargo_mensual` 0,227; base estable | ⚠️ | ✅ |
+| 6 | `scripts/simular_trafico.py --escenario crisis --n 500` | Envía clientes | Sin API: «No se pudo conectar … ¿Está corriendo uvicorn?»; con API: `[ok] 500 clientes (crisis) enviados` | ❌ | ✅ |
+| 7 | Rutas de la API | Todas existen | `/predict`, `/predict/lote`, `/campana/contactos`, `/drift` (POST y GET), `/health`, `/metrics`, `/dashboard` responden según contrato | ❌ | ✅ |
+| 8 | `uv run python scripts/smoke_test.py --sin-ia` | `Todo listo para el taller.` | 8 comprobaciones de Python en `[OK]` (incluye lote, contactos, drift y dashboard), código de salida 0 | ❌ | ✅ |
+| 9 | `make datos` / `probar` / `drift` / `smoke` | Funcionan en macOS | `datos`, `probar` y `drift` bien. `make smoke` (sin `--sin-ia`) falla solo porque el servidor Ollama no está activo en este equipo | ❌ | ✅ (la falla restante es del entorno) |
+| 10 | Escenarios 1–17 y 19 de `quickstart.md` contra la API real, con `CHURN_HASH_SALT` | Todos pasan | Pasan los 21 chequeos. En la primera pasada el 19 «antes» dio 200 porque ya existía `reports/metrics/drift.json` (precondición, no defecto); sin ese archivo dio 404 con `{"error": "Aún no hay un informe de cambio de datos"}`. El 18 va en la fila siguiente | ❌ | ✅ |
+| 11 | Escenario 18: `.joblib` alterado | `no_sano` y 503 | `GET /health` 503 `"estado":"no_sano"`; `POST /predict` 503 `{"error":"Modelo no disponible"}`; el log del servidor dice «la huella del modelo no coincide con su ficha». Restaurado: `sano` | ❌ | ✅ |
+| 12 | 70 solicitudes seguidas a `/health` | Límite de 60 | 59 con 200 y 11 con 429 (había una solicitud previa en la ventana); el 429 trae `retry-after` y `{"error": "Demasiadas solicitudes; reintente en 59 s"}` | ❌ | ✅ |
+| 13 | Registro tras los escenarios | Sin ids en claro | 6.302 líneas, todas con las 5 claves; ni `CLI-SECRETO-001` ni ningún `id_cliente` de las 1.000 filas del lote aparece | ❌ | ✅ |
+
+No se ejecutaron: `scripts/instalar_*.sh` (instalan software), el flujo con Ollama/OpenCode y `docker build` (el demonio de Docker no estaba activo; solo se verificó que la instalación editable en un entorno limpio resuelve `models/` desde la raíz del repositorio).
+
+### Fase 3 · Matriz de trazabilidad (resumen recalculado)
+Cada FR y SC de la spec se buscó en los comentarios y docstrings de `tests/`. **37 de 38 tienen al menos una prueba que los cita**; FR-025 (auditoría trimestral) es un procedimiento humano y lo guarda `tests/unit/test_docs_auditoria_equidad.py`. Estados: ✅ en los 28 FR y 10 SC, salvo SC-010 ⚠️ (el criterio se mide y se hace cumplir como compuerta, pero el modelo actual no lo cumple: B5).
+
+| Antes (⚠️/❌) | Ahora |
+|---|---|
+| FR-009 a FR-012, FR-019, SC-003, SC-007, SC-008 (❌: rutas inexistentes) | ✅ `test_api_lote.py`, `test_api_campana.py`, `test_api_vista.py` |
+| FR-015, FR-023, SC-005 (❌/⚠️: registro sin cablear) | ✅ `test_api_registro.py`, `test_registro_campos.py` |
+| FR-020, FR-021 (❌) | ✅ `test_limitador.py`, `test_api_limite.py`, `test_integridad_modelo.py` |
+| FR-024, FR-025 (❌) | ✅ `test_equidad.py`, `test_mitigacion.py`, `test_docs_auditoria_equidad.py` |
+| FR-003, FR-017 (⚠️: sin prueba) | ✅ `test_recomendaciones*.py`, `test_api_rutas.py` |
+| FR-018, SC-004 (⚠️: 3 de 5 criterios) | ✅ los 5 criterios en `train.py` y `test_evaluate.py` |
+| SC-010 (⚠️) | ⚠️ sigue abierto por el resultado del modelo, no por falta de código |
+
+KPI sin requisito (heredado): «Costo por cliente retenido» sigue sin FR propio; la constitución I lo cubre con precision en el 5 % y ROI ≥ 3.
+
+### Fase 4 · Hipótesis, otra vez
+
+| Hipótesis | Veredicto |
+|---|---|
+| `rango_edad` fuera del predictor | Sigue descartado el problema: `FEATURES` no lo contiene; la API lo rechaza (422 «campo no previsto»); `test_features.py` y `test_predict.py` comprueban que cambiar solo la edad no altera `predict_proba`. |
+| Fuga de datos | Sin fuga (código de entrenamiento sin cambios de lógica: preprocesador dentro del `Pipeline`, umbral por validación cruzada solo en train, test evaluado una vez). |
+| Reproducibilidad | Dos entrenamientos: card idéntico salvo `fecha_entrenamiento` y `hash_modelo` (la huella cambia porque el `.joblib` lleva la fecha). |
+| Aprobación vs `aprobado_para_despliegue` | Resuelto por D2: `aprobado_para_despliegue` es la compuerta técnica, `aprobacion` queda vacía hasta la firma humana; `/health` y cada predicción lo muestran. |
+| Privacidad en logs y errores | Verificado en vivo (escenario 15 y `test_api_errores.py`): sin ids en claro ni valores de entrada; 500 genérico. |
+| Lifespan + 503 | Correcto, ahora también por huella inválida. |
+| PSI | Sin cambios; base estable, crisis crítica. |
+| README en macOS | Todos los comandos documentados se ejecutaron; ver Fase 2. |
+| Validación frente a `config.py` | Una sola fuente: los rangos ya no están duplicados. |
+| `/speckit.converge` | Existe como `/speckit-converge`; README documenta ambos nombres. |
+| Latencia y ROI de `/metrics` | Igual que M8: documentado en el README, no cambiado. |
+
+**Hallazgos nuevos de la re-auditoría** (ambos 🟡, resueltos en la misma etapa):
+- **N1.** La ruta de auto-entrenamiento de `scripts/smoke_test.py` guardaba el modelo sin `hash_modelo`; con la comprobación de integridad el servicio habría quedado en 503. Ahora usa `train.guardar_modelo`.
+- **N2.** Al ampliar el smoke test a lote, campaña y drift, cada ejecución sobrescribía `reports/metrics/` y `logs/`. Ahora redirige esas rutas a una carpeta temporal.
+
+**Observaciones** (límites de diseño, no defectos; están en el README §8): el límite de solicitudes vive en la memoria de un proceso y usa la IP del socket, así que detrás de un proxy todos comparten IP; si la escritura del registro falla, la predicción responde 500 (se prefiere no responder sin rastro de auditoría).
+
+### Fase 5 · Antes y después por severidad
+
+| Severidad | Hallazgos en 2026-11-06 | Resueltos | Siguen abiertos | Nuevos (resueltos) |
+|---|:-:|:-:|:-:|:-:|
+| 🔴 Bloqueantes | 5 | 4 (B1, B2, B3, B4) | **1** (B5) | 0 |
+| 🟠 Importantes | 11 | 9 (I1–I7, I9, I10) | **2** (I8, I11) | 0 |
+| 🟡 Menores | 12 | 10 (M1–M7, M9–M11) | **2** (M8, M12) | 2 (N1, N2) |
+| **Total** | **28** | **23** | **5** | 2 |
+
+**Lo que sigue abierto, y por qué:**
+
+| Hallazgo | Justificación | Quién y cuándo se cierra |
+|---|---|---|
+| **B5** · SC-010: brecha de recall de 0,147 frente a 0,05 | No se resuelve con código. Se intentó la mitigación permitida (D2): ninguna variante bajó de 0,05 (la mejor, 0,075) y el grupo `60+` tiene 40 positivos en la prueba, así que la brecha es ruidosa (≈ 1,6 desviaciones). Relajar el criterio o usar la edad para umbrales por grupo está prohibido (constitución V, D2/D3). El modelo se sirve como **no aprobado**, con alerta en cada respuesta | Dueño del modelo, con más datos por grupo o una decisión explícita; mientras tanto la alerta es visible |
+| **I8** · Los prompts del taller contradicen las tareas | Las rutas ya apuntan a la 002 y la tabla inicial mapea cada ID. Lo que queda (orden P3.c/P3.d, P4.1 con `status ok/degradado`, P4.2 con `monitoring.py`) es el guion didáctico del taller: reescribirlo cambia el ejercicio que da la facilitación | Facilitación del taller |
+| **I11** · Catálogo de recomendaciones provisional | La lista de términos prohibidos y su validación existen y están probadas (T086, T076). Los textos definitivos los define Retención y los revisa Legal; no se pueden inventar (T064) | Retención y Legal |
+| **M8** · Latencia y ROI de `/metrics` | La latencia mide solo la puntuación y el ROI es un estimado; ambos están documentados en el README y en el docstring. Medir la solicitud completa exige un middleware de tiempos y no cambia ninguna decisión | Opcional, sin dueño; cambia si el negocio pide un SLA |
+| **M12** · Pares del ASUM-DM sin firmar y 39 casillas del checklist `seguridad-privacidad-equidad.md` | Son aprobaciones humanas de la salida a producción (ASUM-DM §8, constitución VI); marcarlas sin revisión sería falsear la revisión | Dos pares y el dueño del modelo |
+
+Además, **fuera de los hallazgos originales y sin cerrar**: D10 (la meta de −3 pp exige ≈ 800 contactos y ≈ 6.400 USD al mes frente a 250 y 2.000 USD; `business/ASUM-DM.md` §1.4) es una decisión del negocio, y T068 (aprobación del dueño del modelo) es manual.
+
+**Conclusión.** De 28 hallazgos quedan 5, todos con dueño que no es el código. El servicio funciona de punta a punta, cumple los requisitos de privacidad y seguridad con pruebas, y cuenta con 325 pruebas en verde. Su única condición incumplida es la equidad por edad, que está medida, avisada en cada respuesta y documentada.

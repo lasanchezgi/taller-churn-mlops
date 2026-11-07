@@ -51,7 +51,7 @@ def test_presupuesto_y_costo_fuera_de_rango_dan_mensaje_claro(client, clientes_l
     r = client.post("/campana/contactos", json={"clientes": clientes_lote(3), campo: valor})
     assert r.status_code == 422
     d = {x["campo"]: x["mensaje"] for x in r.json()["detalle"]}
-    assert campo in d and ("mayor o igual" in d[campo] or "menor o igual" in d[campo])
+    assert campo in d and d[campo].startswith("debe estar entre")
 
 
 def test_500_no_devuelve_trazas_ni_rutas(client, cliente_valido, monkeypatch):
@@ -68,3 +68,19 @@ def test_503_sin_modelo_no_expone_rutas(client_sin_modelo, cliente_valido):
     for r in (client_sin_modelo.post("/predict", json=cliente_valido), client_sin_modelo.get("/health")):
         assert r.status_code == 503
         _sin_fugas(r.text)
+
+
+def test_mensaje_de_rango_nombra_el_intervalo_completo(client, cliente_valido):
+    r = client.post("/predict", json={**cliente_valido, "antiguedad_meses": 121})
+    assert r.json()["detalle"][0]["mensaje"] == "debe estar entre 1 y 120"
+
+
+def test_lista_de_categorias_en_espanol(client, cliente_valido):
+    r = client.post("/predict", json={**cliente_valido, "tipo_plan": "x"})
+    m = r.json()["detalle"][0]["mensaje"]
+    assert " o " in m and " or " not in m
+
+
+def test_json_malformado_se_reporta_como_cuerpo(client):
+    r = client.post("/predict", content=b"{", headers={"content-type": "application/json"})
+    assert r.json()["detalle"] == [{"campo": "cuerpo", "mensaje": "JSON mal formado"}]

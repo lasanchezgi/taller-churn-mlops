@@ -6,3 +6,6 @@ logs/*.jsonl
 data/drift/*.csv
 *.egg-info/
 .DS_Store
+logs/*.tmp
+data/processed/*
+!data/processed/.gitkeep

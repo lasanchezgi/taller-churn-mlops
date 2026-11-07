@@ -6,7 +6,7 @@
 | Versión / fecha | 1.0 / 2026-11-06 |
 | Patrocinador de negocio | Gerencia de Retención de Clientes (rol) |
 | Dueño del modelo | Líder de Ciencia de Datos (rol) |
-| Revisado por pares | ☐ Par 1: ______ ☐ Par 2: ______ |
+| Revisado por pares | ☐ Par 1: ______ ☐ Par 2: ______ (pendiente; paso humano de la salida a producción) |
 
 ## 1. Entendimiento del negocio
 ### 1.1 Objetivo de negocio
@@ -36,6 +36,32 @@ Contexto: los clientes que se van representan ≈ 67.209 USD/mes de ingresos (27
 - Tope de 250 contactos: con ≈ 1.275 churners al mes, contactar 250 clientes cubre como máximo ≈ 20 % de ellos (≈ 8 % con precision 0,40). Por eso se separan dos métricas (§6): recall global del modelo (calidad del ranking) y precision@250 (lo que realmente se contacta). Contactar a todos los que cumplen recall 0,70 exigiría ≈ 1.900 contactos (≈ 15.200 USD/mes), fuera del presupuesto.
 - **Punto abierto (pendiente de decisión del patrocinador):** retener ≈ 30–37 clientes al mes baja la tasa mensual ≈ 0,6–0,7 pp sobre 5.000 clientes, no 3 pp. La meta de −3 pp (§1.1) requiere subir presupuesto/contactos, ampliar la base de la campaña o redefinir la meta (p. ej., acumulada). No se modifica hasta que se decida.
 - Los datos son sintéticos; las cifras reales de la empresa deben reemplazar estos supuestos antes de producción.
+
+### 1.4 Brecha de la meta de −3 pp (D10 · riesgo abierto del negocio)
+La meta de −3 pp **no cambia** (decisión D10): es del negocio, no del equipo técnico. Esta sección solo mide la distancia.
+
+Meta en cifras: 25,5 % → 22,5 % sobre 5.000 clientes son 1.275 → 1.125 cancelaciones al mes, es decir **150 retenidos al mes**.
+
+Con el modelo actual (precision medida en el conjunto de prueba de 1.250 clientes, con k escalado a la base de 5.000, ordenados por
+probabilidad), 30 % de éxito de la campaña y 8 USD por contacto:
+
+| Contactos al mes | Precision de lo contactado | Clientes retenidos | Baja de la tasa | Costo |
+|---|---|---|---|---|
+| 250 (hoy, tope del presupuesto) | 0,758 | ≈ 57 | ≈ 1,1 pp | 2.000 USD |
+| 500 | 0,680 | ≈ 102 | ≈ 2,0 pp | 4.000 USD |
+| 750 | 0,638 | ≈ 144 | ≈ 2,9 pp | 6.000 USD |
+| **≈ 800** | ≈ 0,63 | **≈ 150** | **≈ 3,0 pp** | **≈ 6.400 USD** |
+| 1.000 | 0,604 | ≈ 181 | ≈ 3,6 pp | 8.000 USD |
+
+Lectura:
+- La campaña actual (250 contactos, 2.000 USD) mueve la tasa ≈ 1,1 pp con la precision medida en el 5 % de mayor riesgo (0,758); con la
+  precision mínima aceptada (0,40) sería ≈ 0,6 pp. Ninguna llega a −3 pp.
+- Para −3 pp hacen falta **≈ 800 contactos y ≈ 6.400 USD al mes**: ≈ 3,2 veces el presupuesto vigente. Con valor de cliente a 6 meses y cargo medio de
+  52,7 USD, el ROI bruto sería ≈ 6 (aún sin descontar la retención natural del grupo de control).
+- Opciones del negocio (no se eligió ninguna): subir el presupuesto a ≈ 6.400 USD, ampliar la base de la campaña, o redefinir la meta (p. ej., acumulada
+  en 12 meses o ≈ −1 pp mensual).
+- Límites de la cifra: éxito fijo de 30 %, precision de la muestra de prueba (1.250 clientes) que baja al contactar más, datos sintéticos y sin grupo de
+  control. Se recalcula con los datos del primer mes de campaña.
 
 ## 2. Traducción a problema de ML
 | Elemento | Definición |
@@ -88,15 +114,17 @@ Reglas de calidad mínimas:
 | Precision@250 = churners reales entre los 250 clientes de mayor riesgo / 250 | 0,255 (contactar al azar) | ≥ 0,40 | Es la precision de lo que realmente se contacta cada mes con el presupuesto de 2.000 USD |
 | ROC-AUC | 0,50 (azar) | ≥ 0,75 (referencia del taller ≈ 0,81) | Garantiza que el modelo ordena el riesgo mejor que el azar y permite priorizar |
 | ROI de campaña = (ingresos retenidos incrementales − costo) / costo, valor del cliente a 6 meses | 0 (sin campaña) | ≥ 3 (ingresos ≥ 4 veces los 2.000 USD de presupuesto) | Misma meta que §1.2: una sola definición de éxito de negocio |
-| Diferencia máxima de recall entre grupos de `rango_edad` | Sin medir (se mide con el primer modelo) | ≤ 0,05 (a confirmar por el dueño del modelo) | Detecta trato desigual por edad sin usarla como feature |
+| Diferencia máxima de recall entre grupos de `rango_edad` | 0,147 con el primer modelo (18-25: 0,797; 60+: 0,650) | ≤ 0,05 (confirmado, D3) | Detecta trato desigual por edad sin usarla como feature |
+| Ratio de impacto dispar (menor tasa de selección / mayor) | 0,903 con el primer modelo | ≥ 0,80 (regla de los cuatro quintos, D3) | Detecta selección desigual por edad |
 | Umbral de decisión | Calibrado en validación; por defecto 0,50 | Se elige el que cumpla recall global ≥ 0,70 y precision ≥ 0,40 | La campaña mensual contacta solo el top 250 por probabilidad, sin superar el tope de contactos |
 
 ## 7. Riesgos y mitigaciones
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
-| Sesgo | Trato desigual por edad u otros proxies | Edad excluida del modelo; auditoría de métricas por grupo; revisar proxies (p. ej., método de pago) |
+| Sesgo | Trato desigual por edad u otros proxies | Edad excluida del modelo; auditoría de métricas por grupo; revisar proxies (p. ej., método de pago); alerta de equidad mientras el modelo no esté aprobado (D2); auditoría trimestral con la edad del sistema de origen (`docs/AUDITORIA_EQUIDAD.md`) |
 | Calidad de datos | Predicciones erróneas por valores fuera de rango o faltantes | Validación con Pydantic (422), reglas de calidad, rechazo de campos extra |
 | Drift | El modelo pierde precisión si cambian los clientes o el mercado | PSI por variable: alerta ≥ 0,10, crítico ≥ 0,25; monitoreo en `/metrics`; reentrenamiento |
+| Meta de −3 pp fuera de alcance (D10) | La campaña vigente baja la tasa ≈ 1,1 pp, no 3 pp | Decisión del negocio sobre presupuesto, base o meta (§1.4); no la resuelve el equipo técnico |
 | Uso indebido | Negar servicios, subir precios o decidir sin revisión humana | Aviso en cada respuesta, política de uso, aprobación humana de toda acción sobre el cliente |
 | Privacidad | Exposición de identificadores de clientes | IDs con hash en los logs; sin datos personales en reportes; datos sintéticos en el taller |
 
@@ -107,7 +135,8 @@ Reglas de calidad mínimas:
 | Responsables (RACI) | R: Ciencia de Datos (modelo y monitoreo). A: Dueño del modelo. C: Retención (acciones) y Gobernanza/Legal. I: Patrocinador de negocio |
 | Monitoreo | `/health`, `/metrics` (operación, negocio, drift), logs JSONL, dashboard en `/dashboard` |
 | Frecuencia y disparadores de reentrenamiento | Revisión trimestral; reentrenar si PSI ≥ 0,25, si recall cae por debajo de 0,70, o si cambian datos o features (nueva versión del modelo) |
-| Criterio de salida a producción | Métricas ≥ umbrales, `pytest` en verde, model card con versión y hash, ASUM-DM revisado por pares y aprobación del dueño del modelo |
+| Criterio de salida a producción | Métricas ≥ umbrales (incluida la equidad), `pytest` en verde, model card con versión y hash, ASUM-DM revisado por pares y aprobación del dueño del modelo |
+| Modelo que no pasa la equidad (D2) | Se sigue sirviendo **como no aprobado**: `aprobado_para_despliegue = false` con sus razones en el model card, `alertas` en `/health` (sin cambiar `estado`) y `alerta_equidad` en cada respuesta de `/predict` y `/predict/lote`. La promoción es manual (dueño del modelo, `docs/GOBERNANZA.md`); ningún criterio se relaja y la edad no se usa para predecir ni para fijar umbrales por grupo. Hoy es el caso: brecha de recall 0,147 |
 
 ## 9. Uso responsable
 - El modelo **apoya** la decisión de retención; no decide. Toda acción que afecte al cliente requiere revisión humana (analista de retención).

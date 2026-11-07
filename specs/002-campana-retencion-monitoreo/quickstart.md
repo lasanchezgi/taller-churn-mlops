@@ -14,8 +14,8 @@ implementación (`tasks.md`).
 ## 1. Preparar datos y entrenar
 
 ```bash
-python -m churn.dataset      # fuente de verdad: data/raw/churn_telco.csv (5.000 filas, 25 % de churn aprox.); el generador es solo para demos
-python -m churn.train        # regresión logística; escribe modelo, model card (con referencia de PSI y huella)
+uv run python -m churn.dataset      # fuente de verdad: data/raw/churn_telco.csv (5.000 filas, 25 % de churn aprox.); el generador es solo para demos
+uv run python -m churn.train        # regresión logística; escribe modelo, model card (con referencia de PSI y huella)
 ```
 
 Esperado (FR-018, SC-004, SC-010):
@@ -24,7 +24,7 @@ Esperado (FR-018, SC-004, SC-010):
   `rango_edad`, y métricas por grupo de edad con la diferencia máxima de recall y el ratio de impacto dispar.
 - Si algún criterio falla, el entrenamiento no aborta: el modelo queda con `aprobado_para_despliegue=false` (FR-027).
 - Repetir el entrenamiento da exactamente las mismas métricas (semilla fija, FR-016).
-- Si la regresión no cumple, `python -m churn.train --algoritmo rf` entrena la alternativa.
+- Si la regresión no cumple, `uv run python -m churn.train --algoritmo rf` entrena la alternativa.
 
 ## 2. Levantar el servicio
 

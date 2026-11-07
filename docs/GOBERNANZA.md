@@ -3,8 +3,9 @@
 Reglas para aprobar, versionar, vigilar y retirar el modelo. Se basan en `business/ASUM-DM.md` (§8),
 la constitución (principios VI y VII) y la spec `specs/002-campana-retencion-monitoreo/`.
 
-> **Estado de este documento:** las reglas son vigentes. Los pasos que dependen de código aún no
-> construido están marcados con **(pendiente)** y su tarea. Los nombres de las personas que ocupan
+> **Estado de este documento:** las reglas son vigentes y el código que las sostiene ya existe (registro,
+> límite de solicitudes, integridad del modelo, alerta de equidad). Los pasos humanos que siguen abiertos
+> están marcados con **(pendiente)**. Los nombres de las personas que ocupan
 > cada rol no se definen aquí: los asigna el patrocinador.
 
 ## 1. Quién aprueba un modelo (RACI)
@@ -60,7 +61,8 @@ Si falla cualquiera, la versión no se despliega y se documenta el motivo.
 | Cambio de datos | `reports/metrics/drift.json` | `python -m churn.drift` | PSI por variable y, en simulación, comparación base vs. crisis |
 | Pruebas | `reports/pruebas/pytest-<versión>.txt` | `uv run pytest -v` redirigido a archivo (manual) | que las reglas del sistema se cumplen |
 | Especificación | `specs/002-campana-retencion-monitoreo/spec.md`, `plan.md`, `tasks.md` | Spec Kit | qué se pidió, cómo se diseñó y qué tareas están cerradas |
-| Registro de predicciones | `logs/predicciones.jsonl` | la API (pendiente, T047) | auditoría sin identificadores en claro |
+| Registro de predicciones | `logs/predicciones.jsonl` | la API (`/predict`, `/predict/lote`, `/campana/contactos`) | auditoría sin identificadores en claro; 5 campos; 90 días |
+| Auditoría trimestral de equidad | informe según `docs/AUDITORIA_EQUIDAD.md` | Ciencia de Datos (manual) | diferencias reales por grupo de edad, con la edad del sistema de origen |
 
 Cómo guardar el resultado de las pruebas:
 
@@ -71,8 +73,10 @@ uv run pytest -v > reports/pruebas/pytest-1.0.0.txt
 
 Reglas de custodia:
 - Las evidencias de una versión se conservan mientras esa versión pueda ser restaurada.
-- `models/`, `reports/` y `logs/` son generados; hoy `.gitignore` solo excluye `logs/*.jsonl`
-  (decidir si se versionan en T102).
+- `models/` y `reports/metrics/` **sí se versionan** (T102): el servicio necesita `models/churn_model.joblib` para arrancar y
+  su huella (`hash_modelo`) debe viajar con él; los informes son la evidencia de cada versión. `logs/*.jsonl`,
+  `data/drift/*.csv` y `data/processed/*` están en `.gitignore`. Al reentrenar, el `.joblib` cambia byte a byte (lleva la
+  fecha), así que el modelo y su `model_card.json` se versionan siempre juntos.
 - El registro de predicciones se conserva 90 días (valor de partida, FR-023) y solo lo lee Ciencia de Datos.
 - Ninguna evidencia contiene identificadores de clientes en claro ni datos personales.
 
@@ -90,7 +94,9 @@ Formato `MAJOR.MINOR.PATCH`, definido en `config.MODEL_VERSION` y escrito en el 
 - No se reutiliza un número de versión: cada versión corresponde a un único archivo y huella.
 - Cada predicción devuelve la versión que la generó (FR-004).
 - Guardar la huella SHA-256 del `.joblib` en el model card, para que el servicio verifique su
-  integridad al cargar (FR-021): **(pendiente, T090 y T070)**.
+  integridad al cargar (FR-021): **hecho**. `hash_modelo` vive solo en `models/model_card.json` (el `.joblib` contiene el card y no
+  puede llevar su propio hash); `cargar_modelo` lo compara antes de deserializar y, si no coincide o falta, el servicio responde 503
+  y `/health` informa `no_sano`.
 
 ## 5. Disparadores de reentrenamiento
 
@@ -154,6 +160,8 @@ reiniciar: la API arranca, `/health` responde 503 y `/predict` responde 503.
 - **Regla del umbral (D4, FR-027):** el entrenamiento nunca aborta. Elige el umbral de mayor precision con
   recall ≥ 0,70 y, si ninguno lo alcanza, el de mayor recall; guarda siempre `criterios_cumplidos`,
   `razones_no_aprobado` y la `regla_umbral` aplicada.
+- **Revisión humana y equidad en producción:** el procedimiento trimestral y la aprobación de la lista de contacto por un analista
+  están en `docs/AUDITORIA_EQUIDAD.md` (FR-025).
 - **Privacidad:** los registros guardan el identificador solo codificado con una sal que viene de la
   configuración, nunca en claro. Los datos del taller son sintéticos: no extrapolar resultados a
   clientes reales sin revalidar.
@@ -164,8 +172,36 @@ reiniciar: la API arranca, `/health` responde 503 y `/predict` responde 503.
 |---|---|---|---|
 | Versión por predicción | FR-004 | T022 | `src/churn/predict.py` |
 | Estado y versión del servicio | FR-013 | T046 | `src/churn/api.py` (`/health`) |
-| Registro sin identificadores | FR-015, FR-023 | T045, T047 | `src/churn/registro.py` |
+| Registro sin identificadores, 5 campos y 90 días | FR-015, FR-023 | T045, T047, T072, T081 | `src/churn/registro.py`, `src/churn/api.py` |
+| Límite de solicitudes por IP | FR-020 | T077, T078 | `src/churn/limitador.py` |
+| Errores sin valores ni trazas | FR-022 | T071, T080 | `src/churn/api.py` |
 | Cambio de datos (PSI) | FR-014 | T051–T055 | `src/churn/drift.py` |
-| Integridad del modelo | FR-021 | T070 | pendiente |
+| Integridad del modelo | FR-021 | T070, T079, T129 | `src/churn/predict.py`, `src/churn/train.py` |
+| Auditoría trimestral de equidad | FR-025 | T087 | `docs/AUDITORIA_EQUIDAD.md` |
 | Equidad por edad | SC-010 | T015 | `src/churn/train.py`, `src/churn/evaluate.py` |
 | Aprobación del dueño del modelo | constitución VI | T068 | `models/model_card.json` (`aprobacion`) |
+
+## 9. Decisiones vigentes que gobiernan este documento
+
+Registradas en `docs/DECISIONES.md`; no se reabren sin una entrada nueva.
+
+### D2 · Modelo que no pasa la equidad
+Se **sigue sirviendo como no aprobado**, no se bloquea. Lo que lo hace visible:
+
+| Dónde | Qué muestra |
+|---|---|
+| `models/model_card.json` | `aprobado_para_despliegue = false`, `criterios_cumplidos` y `razones_no_aprobado` (p. ej. «brecha de recall entre grupos de edad 0.147 > 0.05») |
+| `GET /health` | `estado` sigue siendo salud operativa (`sano`); se agregan `aprobado_para_despliegue = false` y `alertas` con las razones |
+| `POST /predict`, `POST /predict/lote` | `alerta_equidad` en cada respuesta, además del aviso de revisión humana |
+| `GET /dashboard` | la leyenda «Modelo no aprobado para despliegue», solo lectura |
+
+Reglas: ningún criterio se relaja para que el modelo pase; la edad no se usa para predecir ni para umbrales por grupo; la promoción es manual
+(sección 1) y queda en `aprobacion`. Un único intento de mitigación legítimo (`python -m churn.mitigacion`): ninguna variante bajó de 0,05
+(la mejor, 0,075), así que sigue **abierto**: depende de más datos por grupo (el grupo `60+` tiene 40 positivos en la prueba) y de la
+decisión del dueño del modelo. Estado actual: **no aprobado**.
+
+### D10 · Meta de −3 pp
+La meta **no cambia** y es del negocio. `business/ASUM-DM.md` §1.4 mide la brecha: la campaña vigente (250 contactos, 2.000 USD al mes) baja la tasa
+≈ 1,1 pp; −3 pp exigiría ≈ 800 contactos y ≈ 6.400 USD al mes. Es un **riesgo abierto** (ASUM-DM §7) cuya decisión (más presupuesto, ampliar la base o
+redefinir la meta) corresponde al patrocinador; el dueño del modelo la registra aquí cuando se tome. Mientras tanto, ningún informe debe presentar la
+campaña como suficiente para la meta.

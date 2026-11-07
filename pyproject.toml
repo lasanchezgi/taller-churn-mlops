@@ -20,6 +20,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "httpx>=0.27"]
 
+# `uv sync` instala este grupo por defecto, así que no quita pytest; `--extra dev` sigue funcionando
+[dependency-groups]
+dev = ["pytest>=8", "httpx>=0.27"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

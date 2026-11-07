@@ -6,7 +6,7 @@
 | Sin internet en la sala | **Kit offline en USB** (sección A) | 10–15 min por equipo (hacerlo antes) |
 | Laptop con 8 GB de RAM | Modelo **3B** `taller-coder-mini` (sección B1) | 3 min |
 | Laptop con < 8 GB o muy lenta | **Servidor Ollama compartido** en la LAN (sección B2) | 2 min por equipo |
-| Ollama u OpenCode no instalan | **Modo pareja** + archivos de `referencia/` (sección C) | inmediato |
+| Ollama u OpenCode no instalan | **Modo pareja** + archivos ya construidos de este repositorio (sección C) | inmediato |
 | Spec Kit no instala | Plantillas manuales de `plantillas/` (sección D) | inmediato |
 | Python/pip falla | Wheels locales (sección A3) o pareja | 5 min |
 
@@ -59,17 +59,16 @@ Capacidad orientativa: 6–10 parejas por servidor con modelo 7B; más si usan e
 
 ## C. Modo pareja / sin IA
 - Quien no tiene IA trabaja como **navegante**: lee la spec, revisa el código generado por la pareja y ejecuta las pruebas.
-- Los archivos finales están en `referencia/` (repo alumno). Cópielos al paso correspondiente para no perder el hilo:
-  `cp referencia/src/churn/<archivo>.py src/churn/` (Windows: `copy referencia\src\churn\<archivo>.py src\churn\`).
+- Los archivos finales ya están en este repositorio (`src/churn/`, `tests/`). Quien no pueda generarlos con IA los lee y los ejecuta con `uv run pytest`, para no perder el hilo.
 - Ejercicio equivalente sin IA: usar `prompts/PROMPTS_OPENCODE.md` como **checklist de revisión** del código de referencia.
 
 ## D. Spec Kit no disponible
 Copie las plantillas y complételas a mano (mismos artefactos, mismo aprendizaje):
 ```bash
-mkdir -p specs/001-api-churn .specify/memory
-cp plantillas/spec_plantilla.md  specs/001-api-churn/spec.md
-cp plantillas/plan_plantilla.md  specs/001-api-churn/plan.md
-cp plantillas/tasks_plantilla.md specs/001-api-churn/tasks.md
+mkdir -p specs/002-campana-retencion-monitoreo .specify/memory
+cp plantillas/spec_plantilla.md  specs/002-campana-retencion-monitoreo/spec.md
+cp plantillas/plan_plantilla.md  specs/002-campana-retencion-monitoreo/plan.md
+cp plantillas/tasks_plantilla.md specs/002-campana-retencion-monitoreo/tasks.md
 ```
 Use la skill `spec-code-review` en lugar de `/speckit.converge`.
 

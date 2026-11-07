@@ -56,3 +56,12 @@ def test_validar_rechaza_valor_fuera_de_rango():
     df.loc[0, "reclamos_ult_3m"] = 9
     with pytest.raises(ValueError, match="reclamos_ult_3m"):
         validar(df)
+
+
+def test_csv_fuente_de_verdad_pasa_la_calidad_y_tolera_periodo():
+    """T096 (D6): el CSV de data/raw se valida; `periodo` se tolera y no entra al modelo."""
+    from churn.features import cargar_datos, validar_calidad
+    df = cargar_datos(config.DATA_RAW)
+    validar_calidad(df)
+    assert len(df) == config.N_CLIENTES and df[config.ID_COL].is_unique
+    assert "periodo" not in config.FEATURES

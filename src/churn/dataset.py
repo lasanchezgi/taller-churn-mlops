@@ -17,10 +17,10 @@ COLUMNAS = [
     "rango_edad", "churn",
 ]
 # Límites de entrada (FR-006)
-ANTIGUEDAD = (1, 120)
-CARGO = (10.0, 1000.0)
-RECLAMOS = (0, 6)
-USO_DATOS = (0.0, 1000.0)
+ANTIGUEDAD = config.ANTIGUEDAD_RANGO
+CARGO = config.CARGO_RANGO
+RECLAMOS = config.RECLAMOS_RANGO
+USO_DATOS = config.USO_DATOS_RANGO
 
 # Intercepto del logit: calibrado para ~25 % de churn en el escenario base
 INTERCEPTO = -1.05

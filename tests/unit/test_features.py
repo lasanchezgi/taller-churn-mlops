@@ -76,3 +76,14 @@ def test_preprocesador_ignora_categoria_desconocida(df):
     nuevo["tipo_plan"] = "otro"
     X = pre.transform(nuevo)
     assert not np.isnan(X).any()
+
+
+def test_dos_conjuntos_iguales_salvo_rango_edad_dan_la_misma_probabilidad(df):
+    """T097 (FR-008, SC-006): a nivel de modelo, la edad no altera predict_proba."""
+    from churn.train import entrenar
+    pipe = entrenar(df, "logreg")["pipeline"]
+    a = df.head(200).copy()
+    b = a.copy()
+    b[config.SENSITIVE_COL] = "60+"
+    assert (a[config.SENSITIVE_COL] != b[config.SENSITIVE_COL]).any()
+    assert np.array_equal(pipe.predict_proba(a)[:, 1], pipe.predict_proba(b)[:, 1])

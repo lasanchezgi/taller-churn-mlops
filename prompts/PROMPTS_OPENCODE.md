@@ -19,7 +19,7 @@
 > | P4.4 drift | T021 | T051, T055, T108 | `src/churn/drift.py` |
 > | P4.5 gobernanza | — | `docs/GOBERNANZA.md` (T126) | `docs/GOBERNANZA.md` |
 >
-> Otras correcciones: P3.f no devuelve `id_cliente` en `/predict` (FR-011); las rutas `@specs/001-api-churn/...` deben leerse como `@specs/002-campana-retencion-monitoreo/...`.
+> Otras correcciones: P3.f no devuelve `id_cliente` en `/predict` (FR-011); las rutas de los prompts ya apuntan a `@specs/002-campana-retencion-monitoreo/...` (antes decían 001).
 > Spec Kit: en Claude Code los comandos son `/speckit-*` y en OpenCode `/speckit.*`.
 
 **Cómo usarlos**
@@ -27,7 +27,7 @@
 - Con modelos locales de 3B a 7B funcionan mejor los prompts **cortos y con un solo archivo destino**.
 - Tras cada respuesta: lee el código, ejecuta el comando de verificación y compáralo con `spec.md`.
 - Si el modelo se desvía: escribe `Detente. Relee AGENTS.md y la tarea T0xx. Corrige sólo <archivo>.`
-- Para mencionar archivos usa `@ruta/archivo` (p. ej., `@specs/001-api-churn/spec.md`).
+- Para mencionar archivos usa `@ruta/archivo` (p. ej., `@specs/002-campana-retencion-monitoreo/spec.md`).
 
 ---
 
@@ -67,7 +67,7 @@ uso indebido, privacidad) con impacto y mitigación concreta. Formato: tabla mar
 
 **P2.4 · Ejercicio didáctico: detectar solución prematura**
 ```
-Revisa @specs/001-api-churn/spec.md y lista cada frase que mencione una tecnología, librería,
+Revisa @specs/002-campana-retencion-monitoreo/spec.md y lista cada frase que mencione una tecnología, librería,
 framework, algoritmo o formato de archivo. Para cada una propone una redacción en términos de negocio.
 ```
 
@@ -87,7 +87,7 @@ framework, algoritmo o formato de archivo. Para cada una propone una redacción 
 ```
 
 > **Atajo del taller**: si Spec Kit o el modelo local fallan, copia las versiones de referencia:
-> `specs/001-api-churn/*.md` y `.specify/memory/constitution.md` vienen en el repositorio solución.
+> `specs/002-campana-retencion-monitoreo/*.md` y `.specify/memory/constitution.md` vienen en el repositorio solución.
 
 ---
 
@@ -95,7 +95,7 @@ framework, algoritmo o formato de archivo. Para cada una propone una redacción 
 
 **P3.0 · Preparación del agente**
 ```
-Lee @AGENTS.md y @specs/001-api-churn/tasks.md. Carga las skills ml-churn-pipeline y python-testing.
+Lee @AGENTS.md y @specs/002-campana-retencion-monitoreo/tasks.md. Carga las skills ml-churn-pipeline y python-testing.
 Resume en 5 viñetas qué vas a construir y en qué orden. No escribas código todavía.
 ```
 
@@ -170,8 +170,8 @@ de cada comando y una sección de uso responsable.
 
 **P3.r · Revisión contra la especificación (después de cada paso)**
 ```
-Carga la skill spec-code-review. Compara el código actual con @specs/001-api-churn/spec.md y
-@specs/001-api-churn/tasks.md. Devuelve la matriz requisito | archivo | prueba | estado y la lista de brechas
+Carga la skill spec-code-review. Compara el código actual con @specs/002-campana-retencion-monitoreo/spec.md y
+@specs/002-campana-retencion-monitoreo/tasks.md. Devuelve la matriz requisito | archivo | prueba | estado y la lista de brechas
 como tareas nuevas. No modifiques código.
 ```
 

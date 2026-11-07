@@ -41,3 +41,11 @@ def test_error_interno_responde_500_generico(ruta_modelo, cliente_valido, monkey
     assert r.status_code == 500
     assert r.json() == {"error": "Error interno"}
     assert "secreto" not in r.text and "Traceback" not in r.text
+
+
+def test_predict_responde_en_menos_de_un_segundo(client, cliente_valido):
+    """T098 (SC-003)."""
+    import time
+    inicio = time.perf_counter()
+    assert client.post("/predict", json=cliente_valido).status_code == 200
+    assert time.perf_counter() - inicio < 1.0
