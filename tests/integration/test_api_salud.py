@@ -1,11 +1,12 @@
 """GET /health (T043; FR-013, FR-028)."""
+from churn import config, predict
 
 
 def test_con_modelo_esta_sano_y_trae_la_version(client):
     r = client.get("/health")
     d = r.json()
     assert r.status_code == 200 and d["estado"] == "sano" and d["modelo_cargado"] is True
-    assert d["version_modelo"] and d["error"] is None
+    assert d["version_modelo"] == predict.cargar_modelo(config.MODEL_PATH)["card"]["version"] and d["error"] is None
 
 
 def test_sin_modelo_responde_503_no_sano_y_no_predice(client_sin_modelo, cliente_valido, clientes_lote):

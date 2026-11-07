@@ -9,6 +9,11 @@ def test_solo_hay_rutas_get_y_post(client):
     assert metodos == {"GET", "POST"}
 
 
+def test_no_hay_rutas_montadas_fuera_de_las_declaradas(client):
+    otras = {r.path for r in client.app.routes if not isinstance(r, APIRoute)}
+    assert otras <= {"/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"}
+
+
 def test_los_post_son_solo_de_puntuacion_o_comparacion(client):
     posts = {r.path for r in client.app.routes if isinstance(r, APIRoute) and "POST" in r.methods}
     assert posts == POST_PERMITIDOS

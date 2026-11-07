@@ -10,7 +10,7 @@ from churn.api import Cliente
     ("cargo_mensual", 10), ("cargo_mensual", 1000), ("uso_datos_gb", 0), ("uso_datos_gb", 1000),
 ])
 def test_acepta_los_limites(cliente_valido, campo, valor):
-    assert Cliente(**{**cliente_valido, campo: valor})
+    assert getattr(Cliente(**{**cliente_valido, campo: valor}), campo) == valor  # conserva el valor, no solo "no falla"
 
 
 @pytest.mark.parametrize("campo,valor", [

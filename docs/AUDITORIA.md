@@ -270,7 +270,7 @@ KPI = KPI de `business/ASUM-DM.md` §1.2. Principio = constitución I–VII. ✅
 - (a) Instalar también la integración `opencode` y mantener los prompts. (b) Cambiar prompts y README a `/speckit-*` con la integración `claude`.
 - **Recomiendo (a)** si el taller es con OpenCode (modelos locales), pero es una decisión de la facilitación.
 
-**D10 · Meta de −3 pp (ASUM-DM:37, abierta).** 250 contactos al mes mueven la tasa ≈ 0,6–0,7 pp. Sigue pendiente su decisión (subir presupuesto, ampliar la base o redefinir la meta). No se tocó.
+**D10 · Meta de −3 pp (ASUM-DM:37, abierta).** 250 contactos al mes mueven la tasa ≈ 1,1 pp (la cifra inicial de 0,6–0,7 pp usaba precision 0,40–0,49 en vez de la del top 5 %; ver ASUM-DM §1.4). Sigue pendiente su decisión (subir presupuesto, ampliar la base o redefinir la meta). No se tocó.
 
 ---
 

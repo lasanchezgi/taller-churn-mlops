@@ -49,14 +49,29 @@ probabilidad), 30 % de éxito de la campaña y 8 USD por contacto:
 |---|---|---|---|---|
 | 250 (hoy, tope del presupuesto) | 0,758 | ≈ 57 | ≈ 1,1 pp | 2.000 USD |
 | 500 | 0,680 | ≈ 102 | ≈ 2,0 pp | 4.000 USD |
-| 750 | 0,638 | ≈ 144 | ≈ 2,9 pp | 6.000 USD |
-| **≈ 800** | ≈ 0,63 | **≈ 150** | **≈ 3,0 pp** | **≈ 6.400 USD** |
+| 750 | 0,636 | ≈ 143 | ≈ 2,9 pp | 6.000 USD |
+| **≈ 800** | 0,640 | **≈ 154** | **≈ 3,1 pp** | **≈ 6.400 USD** |
 | 1.000 | 0,604 | ≈ 181 | ≈ 3,6 pp | 8.000 USD |
 
+Fórmula (se genera con `uv run python scripts/brecha_meta.py`):
+`retenidos = contactos × precision@k × tasa_éxito` y `baja (pp) = 100 × retenidos / 5.000`, con tasa_éxito = 0,30 (supuesto fijo) y
+precision@k medida en el conjunto de prueba con k = contactos × 1.250 / 5.000 (250 contactos → k = 62). Ejemplo: 250 × 0,758 × 0,30 = 56,9 → 1,14 pp.
+
+Por qué la auditoría inicial decía 0,6–0,7 pp y ahora ≈ 1,1 pp: solo cambió la precision supuesta (éxito 30 % y base 5.000 son iguales).
+
+| Supuesto de precision (250 contactos) | Precision | Retenidos | Baja |
+|---|---|---|---|
+| Mínima aceptada (`MIN_PRECISION`) | 0,40 | 30,0 | 0,60 pp |
+| Global del modelo con su umbral (los 475 marcados) | 0,493 | 36,9 | 0,74 pp |
+| Top 5 % por probabilidad (los 250 que realmente se contactan) | 0,758 | 56,9 | **1,14 pp** |
+
+La cifra correcta para la campaña es la última: se contacta a los de mayor probabilidad, y su precision es mayor que la promedio de todos los marcados.
+Las anteriores subestimaban porque usaban un piso (0,40) o el promedio global. Incertidumbre: con k = 62 el error estándar de la precision es ≈ 0,054, es decir ≈ ±0,16 pp.
+
 Lectura:
-- La campaña actual (250 contactos, 2.000 USD) mueve la tasa ≈ 1,1 pp con la precision medida en el 5 % de mayor riesgo (0,758); con la
-  precision mínima aceptada (0,40) sería ≈ 0,6 pp. Ninguna llega a −3 pp.
-- Para −3 pp hacen falta **≈ 800 contactos y ≈ 6.400 USD al mes**: ≈ 3,2 veces el presupuesto vigente. Con valor de cliente a 6 meses y cargo medio de
+- La campaña actual (250 contactos, 2.000 USD) mueve la tasa ≈ 1,1 pp (≈ 0,6 pp solo si la precision fuera la mínima aceptada). Ninguna llega a −3 pp;
+  con 250 contactos haría falta una precision de 2,0, imposible.
+- Para −3 pp hacen falta **≈ 800 contactos y ≈ 6.400 USD al mes** (3,07 pp): ≈ 3,2 veces el presupuesto vigente. Con valor de cliente a 6 meses y cargo medio de
   52,7 USD, el ROI bruto sería ≈ 6 (aún sin descontar la retención natural del grupo de control).
 - Opciones del negocio (no se eligió ninguna): subir el presupuesto a ≈ 6.400 USD, ampliar la base de la campaña, o redefinir la meta (p. ej., acumulada
   en 12 meses o ≈ −1 pp mensual).
